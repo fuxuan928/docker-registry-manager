@@ -1,10 +1,14 @@
 //! Docker Registry Manager - Main entry point
 
+use base64::Engine;
 use dioxus::prelude::*;
 use docker_registry_manager::components::App;
 
-const MAIN_CSS: Asset = asset!("/assets/main.css");
-const FAVICON: Asset = asset!("/assets/favicon.ico");
+/// Embedded CSS styles
+const MAIN_CSS: &str = include_str!("../assets/main.css");
+
+/// Embedded favicon (base64 encoded for data URI)
+const FAVICON_ICO: &[u8] = include_bytes!("../assets/favicon.ico");
 
 /// Get WebView2 data directory in AppData
 #[cfg(all(windows, not(target_arch = "wasm32")))]
@@ -56,9 +60,15 @@ fn main() {
 
 #[component]
 fn Root() -> Element {
+    // Create base64 data URI for favicon
+    let favicon_base64 = base64::engine::general_purpose::STANDARD.encode(FAVICON_ICO);
+    let favicon_uri = format!("data:image/x-icon;base64,{}", favicon_base64);
+    
     rsx! {
-        document::Link { rel: "icon", href: FAVICON }
-        document::Link { rel: "stylesheet", href: MAIN_CSS }
+        // Inject CSS as inline style
+        style { {MAIN_CSS} }
+        // Inject favicon as data URI
+        document::Link { rel: "icon", href: "{favicon_uri}" }
         App {}
     }
 }

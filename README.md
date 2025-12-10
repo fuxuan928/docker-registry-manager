@@ -2,8 +2,6 @@
 
 A cross-platform desktop application for managing Docker registries. Browse repositories, view image tags, inspect manifests, and manage your container images with an intuitive graphical interface.
 
-![Docker Registry Manager](assets/header.svg)
-
 ## Features
 
 - **Multi-Registry Support** - Connect to multiple Docker registries simultaneously
