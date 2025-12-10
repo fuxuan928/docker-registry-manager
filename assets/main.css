@@ -1,0 +1,1222 @@
+/* Docker Registry Manager - Main Styles */
+
+:root {
+    /* Light theme (default) */
+    --bg-primary: #ffffff;
+    --bg-secondary: #f5f5f5;
+    --bg-tertiary: #e8e8e8;
+    --text-primary: #1a1a1a;
+    --text-secondary: #666666;
+    --border-color: #ddd;
+    --accent-color: #0066cc;
+    --accent-hover: #0052a3;
+    --error-color: #dc3545;
+    --success-color: #28a745;
+    --warning-color: #ffc107;
+    --input-bg: #ffffff;
+    --modal-bg: #ffffff;
+    --btn-text: #333333;
+}
+
+[data-theme="dark"] {
+    --bg-primary: #1a1a1a;
+    --bg-secondary: #252525;
+    --bg-tertiary: #333333;
+    --text-primary: #e8e8e8;
+    --text-secondary: #a0a0a0;
+    --border-color: #444444;
+    --accent-color: #4da6ff;
+    --accent-hover: #80bfff;
+    --error-color: #ff6b6b;
+    --success-color: #51cf66;
+    --warning-color: #fcc419;
+    --input-bg: #2d2d2d;
+    --modal-bg: #252525;
+    --btn-text: #e8e8e8;
+}
+
+/* System theme detection */
+@media (prefers-color-scheme: dark) {
+    [data-theme="system"] {
+        --bg-primary: #1a1a1a;
+        --bg-secondary: #252525;
+        --bg-tertiary: #333333;
+        --text-primary: #e8e8e8;
+        --text-secondary: #a0a0a0;
+        --border-color: #444444;
+        --accent-color: #4da6ff;
+        --accent-hover: #80bfff;
+        --error-color: #ff6b6b;
+        --success-color: #51cf66;
+        --warning-color: #fcc419;
+        --input-bg: #2d2d2d;
+        --modal-bg: #252525;
+        --btn-text: #e8e8e8;
+    }
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    line-height: 1.5;
+}
+
+.app-container {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background-color: var(--bg-primary);
+}
+
+.app-layout {
+    display: flex;
+    flex: 1;
+    min-height: 100vh;
+}
+
+/* Sidebar */
+.sidebar {
+    width: 280px;
+    background-color: var(--bg-secondary);
+    border-right: 1px solid var(--border-color);
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+.sidebar h2 {
+    font-size: 1.25rem;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+/* Main content */
+.main-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    background-color: var(--bg-primary);
+}
+
+/* Toolbar */
+.toolbar {
+    background-color: var(--bg-secondary);
+    border-bottom: 1px solid var(--border-color);
+    padding: 0.75rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.toolbar h1 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+.toolbar-actions {
+    margin-left: auto;
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* Content area */
+.content {
+    flex: 1;
+    padding: 1rem;
+    overflow-y: auto;
+    background-color: var(--bg-primary);
+}
+
+/* Buttons */
+button {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+    transition: background-color 0.2s, color 0.2s;
+    color: var(--btn-text);
+}
+
+button.primary {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+button.primary:hover {
+    background-color: var(--accent-hover);
+}
+
+button.primary:disabled {
+    background-color: var(--bg-tertiary);
+    color: var(--text-secondary);
+    cursor: not-allowed;
+}
+
+button.secondary {
+    background-color: var(--bg-tertiary);
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+button.secondary:hover {
+    background-color: var(--border-color);
+}
+
+button.danger {
+    background-color: var(--error-color);
+    color: white;
+}
+
+button.danger:hover {
+    opacity: 0.9;
+}
+
+/* Inputs */
+input, select, textarea {
+    padding: 0.5rem;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    background-color: var(--input-bg);
+    color: var(--text-primary);
+    font-size: 0.875rem;
+}
+
+input::placeholder, textarea::placeholder {
+    color: var(--text-secondary);
+}
+
+input:focus, select:focus, textarea:focus {
+    outline: none;
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(77, 166, 255, 0.2);
+}
+
+/* Lists */
+.list-item {
+    padding: 0.75rem;
+    border-bottom: 1px solid var(--border-color);
+    cursor: pointer;
+    transition: background-color 0.2s;
+    color: var(--text-primary);
+}
+
+.list-item:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.list-item.selected {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.list-item.selected .registry-url,
+.list-item.selected .tag-digest,
+.list-item.selected .tag-size {
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Status indicators */
+.status-indicator {
+    display: inline-block;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 0.5rem;
+    flex-shrink: 0;
+}
+
+.status-indicator.connected {
+    background-color: var(--success-color);
+}
+
+.status-indicator.disconnected {
+    background-color: var(--error-color);
+}
+
+.status-indicator.unknown {
+    background-color: var(--warning-color);
+}
+
+.status-indicator.error {
+    background-color: var(--error-color);
+}
+
+/* Content panels */
+.content-panels {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1.5fr;
+    gap: 1rem;
+    height: 100%;
+}
+
+.panel {
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+}
+
+.panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.panel-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.header-actions {
+    display: flex;
+    gap: 0.25rem;
+}
+
+/* Search box */
+.search-box {
+    margin-bottom: 1rem;
+}
+
+.search-box input {
+    width: 100%;
+}
+
+/* Registry list specific */
+.registry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+}
+
+.registry-header h3 {
+    color: var(--text-primary);
+}
+
+.registry-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.registry-name {
+    font-weight: 500;
+    color: inherit;
+}
+
+.registry-url {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.registry-actions {
+    display: flex;
+    gap: 0.25rem;
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.list-item:hover .registry-actions {
+    opacity: 1;
+}
+
+/* Tag item */
+.tag-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.tag-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.tag-name {
+    font-weight: 500;
+    color: inherit;
+}
+
+.tag-digest, .tag-size {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+/* Batch actions */
+.batch-actions {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    color: var(--text-primary);
+}
+
+/* Manifest view */
+.manifest-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.manifest-section {
+    padding: 1rem;
+    background-color: var(--bg-primary);
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+}
+
+.manifest-section h4 {
+    margin: 0 0 0.5rem 0;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.manifest-section dl {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 0.25rem 1rem;
+}
+
+.manifest-section dt {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.manifest-section dd {
+    margin: 0;
+    font-family: monospace;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+/* Layers list */
+.layers-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.layer-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: var(--text-primary);
+}
+
+.layer-index {
+    width: 2rem;
+    text-align: center;
+    color: var(--text-secondary);
+}
+
+.layer-digest {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text-primary);
+}
+
+.layer-size {
+    color: var(--text-secondary);
+}
+
+/* Raw JSON */
+.raw-json {
+    margin-top: 0.5rem;
+    padding: 1rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow-x: auto;
+    font-size: 0.75rem;
+    max-height: 300px;
+    color: var(--text-primary);
+    border: 1px solid var(--border-color);
+}
+
+/* History view */
+.history-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.history-item {
+    padding: 0.5rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+}
+
+.history-time {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+}
+
+.history-command {
+    margin: 0.25rem 0 0 0;
+    font-size: 0.75rem;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-primary);
+}
+
+.empty-layer-badge {
+    font-size: 0.625rem;
+    padding: 0.125rem 0.25rem;
+    background-color: var(--warning-color);
+    color: #000;
+    border-radius: 2px;
+}
+
+/* Settings panel */
+.settings-panel {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.settings-panel h2 {
+    color: var(--text-primary);
+    margin-bottom: 1.5rem;
+}
+
+.settings-section {
+    margin-bottom: 2rem;
+    padding: 1rem;
+    background-color: var(--bg-secondary);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+}
+
+.settings-section h3 {
+    margin: 0 0 1rem 0;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+/* Form styles */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 0.25rem;
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+    width: 100%;
+}
+
+.form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
+/* Modal */
+.modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.modal {
+    background-color: var(--modal-bg);
+    border-radius: 8px;
+    padding: 1.5rem;
+    min-width: 400px;
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow-y: auto;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+}
+
+.modal h3 {
+    margin: 0 0 1rem 0;
+    color: var(--text-primary);
+}
+
+/* Error display */
+.error-display {
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid var(--error-color);
+    border-radius: 4px;
+    padding: 1rem;
+    margin: 1rem 0;
+}
+
+.error-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.error-icon {
+    font-size: 1.25rem;
+}
+
+.error-message {
+    flex: 1;
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.error-details {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.detail-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.detail-label {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.detail-value {
+    color: var(--text-primary);
+}
+
+.detail-section {
+    margin-top: 0.5rem;
+}
+
+.detail-content {
+    margin: 0.5rem 0 0 0;
+    padding: 0.5rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    overflow-x: auto;
+    max-height: 200px;
+    color: var(--text-primary);
+}
+
+.curl-command {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.5rem;
+}
+
+.curl-command pre {
+    flex: 1;
+    margin: 0;
+    padding: 0.5rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    overflow-x: auto;
+    color: var(--text-primary);
+}
+
+/* Button variants */
+.btn-icon {
+    background: transparent;
+    border: none;
+    padding: 0.25rem 0.5rem;
+    cursor: pointer;
+    border-radius: 4px;
+    font-size: 1rem;
+    color: var(--text-primary);
+}
+
+.btn-icon:hover {
+    background-color: var(--bg-tertiary);
+}
+
+.btn-icon.active {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.btn-icon.small {
+    font-size: 0.875rem;
+    padding: 0.125rem 0.25rem;
+}
+
+.btn-icon.danger:hover {
+    background-color: var(--error-color);
+    color: white;
+}
+
+button.small {
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+}
+
+/* Loading and empty states */
+.loading, .empty-message {
+    text-align: center;
+    color: var(--text-secondary);
+    padding: 2rem;
+}
+
+.error {
+    color: var(--error-color);
+    text-align: center;
+    padding: 1rem;
+}
+
+/* Delete dialog */
+.delete-dialog {
+    max-width: 500px;
+}
+
+.delete-dialog p {
+    color: var(--text-primary);
+}
+
+.delete-confirm .warning {
+    color: var(--error-color);
+    font-weight: 500;
+}
+
+.tag-list-preview {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin: 1rem 0;
+    max-height: 150px;
+    overflow-y: auto;
+}
+
+.tag-badge {
+    padding: 0.25rem 0.5rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-family: monospace;
+    color: var(--text-primary);
+}
+
+.more-tags {
+    color: var(--text-secondary);
+    font-size: 0.75rem;
+}
+
+.delete-progress {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-primary);
+}
+
+.progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    overflow: hidden;
+    margin: 1rem 0;
+}
+
+.progress-fill {
+    height: 100%;
+    background-color: var(--accent-color);
+    transition: width 0.3s ease;
+}
+
+.delete-summary {
+    text-align: center;
+    padding: 2rem;
+    color: var(--text-primary);
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--bg-secondary);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--text-secondary);
+}
+
+/* Focus styles */
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+/* Transitions */
+.list-item,
+button,
+.panel {
+    transition: background-color 0.2s, color 0.2s, border-color 0.2s;
+}
+
+/* Responsive adjustments */
+
+/* Tablet breakpoint */
+@media (max-width: 1200px) {
+    .content-panels {
+        grid-template-columns: 1fr 1fr;
+    }
+    
+    .manifest-panel {
+        grid-column: span 2;
+    }
+    
+    .sidebar {
+        width: 240px;
+    }
+}
+
+/* Small tablet / large phone */
+@media (max-width: 1024px) {
+    .content-panels {
+        grid-template-columns: 1fr 1fr;
+        gap: 0.75rem;
+    }
+    
+    .manifest-panel {
+        grid-column: span 2;
+    }
+    
+    .panel {
+        padding: 0.75rem;
+    }
+    
+    .toolbar h1 {
+        font-size: 1rem;
+    }
+}
+
+/* Mobile breakpoint */
+@media (max-width: 768px) {
+    .app-layout {
+        flex-direction: column;
+    }
+    
+    .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid var(--border-color);
+        max-height: 40vh;
+        overflow-y: auto;
+    }
+    
+    .sidebar.collapsed {
+        max-height: 60px;
+        overflow: hidden;
+    }
+    
+    .sidebar.collapsed .registry-list .list {
+        display: none;
+    }
+    
+    .content-panels {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+    
+    .manifest-panel {
+        grid-column: span 1;
+    }
+    
+    .panel {
+        border-radius: 4px;
+        padding: 0.5rem;
+    }
+    
+    .panel.collapsed {
+        max-height: 50px;
+        overflow: hidden;
+    }
+    
+    .panel.collapsed .list,
+    .panel.collapsed .search-box,
+    .panel.collapsed .manifest-content {
+        display: none;
+    }
+    
+    .panel-header {
+        cursor: pointer;
+    }
+    
+    .panel-header .collapse-icon {
+        display: inline-block;
+        transition: transform 0.2s;
+    }
+    
+    .panel.collapsed .panel-header .collapse-icon {
+        transform: rotate(-90deg);
+    }
+    
+    .modal {
+        min-width: auto;
+        width: 95vw;
+        max-height: 85vh;
+        padding: 1rem;
+    }
+    
+    .toolbar {
+        padding: 0.5rem;
+        flex-wrap: wrap;
+    }
+    
+    .toolbar h1 {
+        font-size: 0.9rem;
+        flex: 1;
+    }
+    
+    .toolbar-actions {
+        gap: 0.25rem;
+    }
+    
+    .content {
+        padding: 0.5rem;
+    }
+    
+    .settings-panel {
+        padding: 0.5rem;
+    }
+    
+    .settings-section {
+        padding: 0.75rem;
+    }
+    
+    .form-actions {
+        flex-direction: column;
+    }
+    
+    .form-actions button {
+        width: 100%;
+    }
+    
+    .batch-actions {
+        flex-wrap: wrap;
+        gap: 0.5rem;
+    }
+    
+    .manifest-section dl {
+        grid-template-columns: 1fr;
+        gap: 0.25rem;
+    }
+    
+    .manifest-section dt {
+        font-weight: 600;
+    }
+    
+    .manifest-section dd {
+        margin-bottom: 0.5rem;
+    }
+    
+    .layer-item {
+        flex-wrap: wrap;
+    }
+    
+    .layer-digest {
+        width: 100%;
+        order: 2;
+    }
+}
+
+/* Small phone */
+@media (max-width: 480px) {
+    .toolbar h1 {
+        font-size: 0.8rem;
+    }
+    
+    .btn-icon {
+        padding: 0.2rem 0.4rem;
+        font-size: 0.9rem;
+    }
+    
+    .list-item {
+        padding: 0.5rem;
+    }
+    
+    .tag-list-preview {
+        max-height: 100px;
+    }
+    
+    .delete-dialog {
+        padding: 1rem;
+    }
+    
+    .registry-info {
+        max-width: 150px;
+    }
+    
+    .registry-url {
+        font-size: 0.65rem;
+    }
+}
+
+/* Landscape phone */
+@media (max-width: 768px) and (orientation: landscape) {
+    .sidebar {
+        max-height: 30vh;
+    }
+    
+    .modal {
+        max-height: 90vh;
+    }
+}
+
+/* Touch device optimizations */
+@media (hover: none) and (pointer: coarse) {
+    .list-item {
+        padding: 0.875rem;
+    }
+    
+    .btn-icon {
+        padding: 0.5rem;
+        min-width: 44px;
+        min-height: 44px;
+    }
+    
+    .registry-actions {
+        opacity: 1;
+    }
+    
+    input, select, textarea {
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    button {
+        min-height: 44px;
+    }
+}
+
+/* Print styles */
+@media print {
+    .toolbar,
+    .sidebar,
+    .modal-overlay,
+    .btn-icon,
+    button {
+        display: none !important;
+    }
+    
+    .app-layout {
+        display: block;
+    }
+    
+    .content-panels {
+        display: block;
+    }
+    
+    .panel {
+        break-inside: avoid;
+        margin-bottom: 1rem;
+    }
+}
+
+
+/* Error box with retry */
+.error-box {
+    text-align: center;
+    padding: 1rem;
+}
+
+.error-box .error {
+    margin-bottom: 0.5rem;
+}
+
+/* Info box */
+.info-box {
+    background-color: var(--bg-tertiary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    margin: 1rem 0;
+    text-align: left;
+}
+
+.info-box p {
+    margin-bottom: 0.5rem;
+    color: var(--text-primary);
+}
+
+.info-box ul {
+    margin-left: 1.5rem;
+    margin-top: 0.5rem;
+}
+
+.info-box li {
+    margin-bottom: 0.25rem;
+    color: var(--text-secondary);
+}
+
+/* Garbage collection section */
+.gc-section {
+    margin-top: 1rem;
+}
+
+.gc-section p {
+    margin-bottom: 0.5rem;
+}
+
+.command-box {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background-color: var(--bg-primary);
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    padding: 0.75rem;
+    margin: 0.5rem 0;
+}
+
+.command-box code {
+    flex: 1;
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 0.8rem;
+    word-break: break-all;
+    color: var(--text-primary);
+}
+
+.hint {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+/* Status message */
+.status-message {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.5rem 1rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    margin-bottom: 1rem;
+    font-size: 0.875rem;
+    color: var(--text-primary);
+}
+
+/* Digest value in manifest */
+.digest-value {
+    word-break: break-all;
+    font-size: 0.75rem;
+}
+
+/* cURL command in manifest view */
+.manifest-section .curl-command {
+    margin-top: 0.5rem;
+    padding: 0.75rem;
+    background-color: var(--bg-tertiary);
+    border-radius: 4px;
+    font-family: monospace;
+    font-size: 0.75rem;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-break: break-all;
+    color: var(--text-primary);
+}
+
+/* Checkbox styling */
+input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    cursor: pointer;
+    accent-color: var(--accent-color);
+}
+
+/* Repository item */
+.repo-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.repo-item .repo-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.repo-item .btn-icon.danger {
+    opacity: 0;
+    transition: opacity 0.2s;
+}
+
+.repo-item:hover .btn-icon.danger {
+    opacity: 1;
+}
+
+/* Error summary in delete dialog */
+.error-summary {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background-color: rgba(220, 53, 69, 0.1);
+    border-radius: 4px;
+    border: 1px solid var(--error-color);
+}
+
+.error-list {
+    margin-top: 0.5rem;
+    max-height: 100px;
+    overflow-y: auto;
+}
+
+.error-item {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    margin: 0.25rem 0;
+}
+
+.more-errors {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
