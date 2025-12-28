@@ -7,9 +7,21 @@ use aes_gcm::{
 };
 use base64::{engine::general_purpose::STANDARD, Engine};
 use rand::Rng;
+use std::sync::OnceLock;
 
-// 32-byte key for AES-256
-const ENCRYPTION_KEY: &[u8; 32] = b"docker-registry-mgr-key-v1!!!!!!";
+// Key for AES-256 (initialized at runtime)
+static ENCRYPTION_KEY: OnceLock<[u8; 32]> = OnceLock::new();
+
+/// Initialize the encryption key
+pub fn init_key(key: [u8; 32]) -> Result<(), StorageError> {
+    ENCRYPTION_KEY.set(key)
+        .map_err(|_| StorageError::EncryptionError("Encryption key already initialized".to_string()))
+}
+
+fn get_key() -> Result<&'static [u8; 32], StorageError> {
+    ENCRYPTION_KEY.get()
+        .ok_or_else(|| StorageError::EncryptionError("Encryption key not initialized".to_string()))
+}
 
 /// Encrypt a string using AES-256-GCM and return base64 encoded result
 pub fn encrypt_string(data: &str) -> Result<String, StorageError> {
@@ -17,12 +29,13 @@ pub fn encrypt_string(data: &str) -> Result<String, StorageError> {
         return Ok(String::new());
     }
     
-    let cipher = Aes256Gcm::new_from_slice(ENCRYPTION_KEY)
+    let key = get_key()?;
+    let cipher = Aes256Gcm::new_from_slice(key)
         .map_err(|e| StorageError::EncryptionError(e.to_string()))?;
     
     // Generate random 12-byte nonce
     let mut nonce_bytes = [0u8; 12];
-    rand::thread_rng().fill(&mut nonce_bytes);
+    rand::rng().fill(&mut nonce_bytes);
     let nonce = Nonce::from_slice(&nonce_bytes);
     
     let ciphertext = cipher
@@ -50,7 +63,8 @@ pub fn decrypt_string(data: &str) -> Result<String, StorageError> {
         return Err(StorageError::EncryptionError("Invalid encrypted data".to_string()));
     }
     
-    let cipher = Aes256Gcm::new_from_slice(ENCRYPTION_KEY)
+    let key = get_key()?;
+    let cipher = Aes256Gcm::new_from_slice(key)
         .map_err(|e| StorageError::EncryptionError(e.to_string()))?;
     
     // Extract nonce and ciphertext

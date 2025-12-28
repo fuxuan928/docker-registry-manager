@@ -10,6 +10,7 @@ mod toolbar;
 mod settings;
 mod error_display;
 mod delete_dialog;
+mod encryption_prompt;
 
 pub use app::*;
 pub use registry_list::*;
@@ -20,4 +21,5 @@ pub use manifest_view::*;
 pub use toolbar::*;
 pub use settings::*;
 pub use error_display::*;
+pub use encryption_prompt::*;
 pub use delete_dialog::*;

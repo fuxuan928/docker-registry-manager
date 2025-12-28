@@ -1220,3 +1220,95 @@ input[type="checkbox"] {
     color: var(--text-secondary);
     font-style: italic;
 }
+/* Encryption Prompt */
+.encryption-prompt-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--bg-primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2000;
+}
+
+.encryption-prompt-card {
+    background-color: var(--bg-secondary);
+    padding: 2.5rem;
+    border-radius: 12px;
+    border: 1px solid var(--border-color);
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 450px;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.encryption-prompt-card h2 {
+    font-size: 1.5rem;
+    color: var(--text-primary);
+    text-align: center;
+}
+
+.encryption-prompt-card p {
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.encryption-prompt-card .form-group label {
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.encryption-prompt-card input {
+    height: 2.5rem;
+    font-size: 1rem;
+}
+
+.encryption-prompt-card .error-message {
+    padding: 0.75rem;
+    background-color: rgba(220, 53, 69, 0.1);
+    border: 1px solid var(--error-color);
+    border-radius: 6px;
+    color: var(--error-color);
+    font-size: 0.85rem;
+    text-align: center;
+}
+
+.encryption-prompt-card .button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+}
+
+.encryption-prompt-card button {
+    height: 2.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.primary-button {
+    background-color: var(--accent-color);
+    color: white;
+}
+
+.primary-button:hover {
+    background-color: var(--accent-hover);
+}
+
+.danger-button {
+    background-color: transparent;
+    border: 1px solid var(--error-color);
+    color: var(--error-color);
+}
+
+.danger-button:hover {
+    background-color: var(--error-color);
+    color: white;
+}

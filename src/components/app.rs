@@ -43,13 +43,10 @@ pub fn App() -> Element {
     
     rsx! {
         div {
-            class: "app-container",
+            class: "app-layout",
             "data-theme": theme_class,
             
-            div {
-                class: "app-layout",
-                
-                // Left sidebar - Registry list
+            // Left sidebar - Registry list
                 aside {
                     class: "sidebar",
                     RegistryList {}
@@ -93,7 +90,6 @@ pub fn App() -> Element {
                         }
                     }
                 }
-            }
         }
     }
 }

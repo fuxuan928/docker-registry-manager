@@ -28,10 +28,13 @@ impl StorageService {
     /// Save registries to storage (with encryption for sensitive data)
     pub fn save_registries(&self, registries: &[RegistryConfig]) -> Result<(), StorageError> {
         // Encrypt sensitive data before saving
-        let encrypted_registries: Vec<RegistryConfig> = registries
+        let encrypted_registries: Result<Vec<RegistryConfig>, String> = registries
             .iter()
             .map(|r| r.encrypt_for_storage())
             .collect();
+        
+        let encrypted_registries = encrypted_registries
+            .map_err(|e| StorageError::EncryptionError(e))?;
         
         let json = serde_json::to_string(&encrypted_registries)
             .map_err(|e| StorageError::SerializationError(e.to_string()))?;
@@ -49,12 +52,12 @@ impl StorageService {
                     .map_err(|e| StorageError::SerializationError(e.to_string()))?;
                 
                 // Decrypt sensitive data after loading
-                let decrypted_registries: Vec<RegistryConfig> = registries
+                let decrypted_registries: Result<Vec<RegistryConfig>, String> = registries
                     .iter()
                     .map(|r| r.decrypt_from_storage())
                     .collect();
                 
-                Ok(decrypted_registries)
+                decrypted_registries.map_err(|e| StorageError::EncryptionError(e))
             }
             None => Ok(Vec::new()),
         }
@@ -103,6 +106,11 @@ impl StorageService {
     /// Clear all stored data
     pub fn clear_all(&self) -> Result<(), StorageError> {
         self.adapter.clear()
+    }
+    
+    /// Check if configuration exists
+    pub fn has_config(&self) -> bool {
+        self.adapter.retrieve(REGISTRIES_KEY).map(|o| o.is_some()).unwrap_or(false)
     }
 }
 

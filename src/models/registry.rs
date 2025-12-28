@@ -50,59 +50,59 @@ pub enum AuthConfig {
 
 impl AuthConfig {
     /// Encrypt sensitive fields before saving
-    pub fn encrypt_for_storage(&self) -> Self {
+    pub fn encrypt_for_storage(&self) -> Result<Self, String> {
         use crate::storage::encryption::encrypt_string;
         
         match self {
             AuthConfig::BasicAuth { username, password, .. } => {
-                let encrypted = encrypt_string(password).unwrap_or_default();
-                AuthConfig::BasicAuth {
+                let encrypted = encrypt_string(password).map_err(|e| e.to_string())?;
+                Ok(AuthConfig::BasicAuth {
                     username: username.clone(),
                     password: String::new(), // Clear plaintext
                     encrypted_password: encrypted,
-                }
+                })
             }
             AuthConfig::BearerToken { token, .. } => {
-                let encrypted = encrypt_string(token).unwrap_or_default();
-                AuthConfig::BearerToken {
+                let encrypted = encrypt_string(token).map_err(|e| e.to_string())?;
+                Ok(AuthConfig::BearerToken {
                     token: String::new(), // Clear plaintext
                     encrypted_token: encrypted,
-                }
+                })
             }
-            other => other.clone(),
+            other => Ok(other.clone()),
         }
     }
     
     /// Decrypt sensitive fields after loading
-    pub fn decrypt_from_storage(&self) -> Self {
+    pub fn decrypt_from_storage(&self) -> Result<Self, String> {
         use crate::storage::encryption::decrypt_string;
         
         match self {
             AuthConfig::BasicAuth { username, password, encrypted_password } => {
                 // If we have encrypted password, decrypt it
                 let decrypted = if !encrypted_password.is_empty() {
-                    decrypt_string(encrypted_password).unwrap_or_default()
+                    decrypt_string(encrypted_password).map_err(|e| e.to_string())?
                 } else {
                     password.clone()
                 };
-                AuthConfig::BasicAuth {
+                Ok(AuthConfig::BasicAuth {
                     username: username.clone(),
                     password: decrypted,
                     encrypted_password: String::new(),
-                }
+                })
             }
             AuthConfig::BearerToken { token, encrypted_token } => {
                 let decrypted = if !encrypted_token.is_empty() {
-                    decrypt_string(encrypted_token).unwrap_or_default()
+                    decrypt_string(encrypted_token).map_err(|e| e.to_string())?
                 } else {
                     token.clone()
                 };
-                AuthConfig::BearerToken {
+                Ok(AuthConfig::BearerToken {
                     token: decrypted,
                     encrypted_token: String::new(),
-                }
+                })
             }
-            other => other.clone(),
+            other => Ok(other.clone()),
         }
     }
 }
@@ -130,24 +130,24 @@ impl RegistryConfig {
     }
     
     /// Prepare for storage by encrypting sensitive data
-    pub fn encrypt_for_storage(&self) -> Self {
-        Self {
+    pub fn encrypt_for_storage(&self) -> Result<Self, String> {
+        Ok(Self {
             id: self.id.clone(),
             name: self.name.clone(),
             url: self.url.clone(),
-            auth: self.auth.encrypt_for_storage(),
+            auth: self.auth.encrypt_for_storage()?,
             status: ConnectionStatus::Unknown,
-        }
+        })
     }
     
     /// Restore after loading by decrypting sensitive data
-    pub fn decrypt_from_storage(&self) -> Self {
-        Self {
+    pub fn decrypt_from_storage(&self) -> Result<Self, String> {
+        Ok(Self {
             id: self.id.clone(),
             name: self.name.clone(),
             url: self.url.clone(),
-            auth: self.auth.decrypt_from_storage(),
+            auth: self.auth.decrypt_from_storage()?,
             status: ConnectionStatus::Unknown,
-        }
+        })
     }
 }

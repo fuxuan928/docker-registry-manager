@@ -13,5 +13,5 @@ pub use adapter::*;
 pub use desktop::*;
 #[cfg(target_arch = "wasm32")]
 pub use web::*;
-pub use encryption::*;
+pub use encryption::{decrypt_string, encrypt_string, init_key};
 pub use service::*;

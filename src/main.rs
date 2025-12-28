@@ -64,11 +64,33 @@ fn Root() -> Element {
     let favicon_base64 = base64::engine::general_purpose::STANDARD.encode(FAVICON_ICO);
     let favicon_uri = format!("data:image/x-icon;base64,{}", favicon_base64);
     
+    let mut is_ready = use_signal(|| {
+        #[cfg(target_arch = "wasm32")]
+        { true }
+        #[cfg(not(target_arch = "wasm32"))]
+        { false }
+    });
+    
+    // Minimal theme detection for the prompt (defaults to system)
+    let theme_class = "system";
+    
     rsx! {
         // Inject CSS as inline style
         style { {MAIN_CSS} }
         // Inject favicon as data URI
         document::Link { rel: "icon", href: "{favicon_uri}" }
-        App {}
+        
+        div {
+            class: "app-container",
+            "data-theme": "{theme_class}",
+            
+            if is_ready() {
+                App {}
+            } else {
+                docker_registry_manager::components::EncryptionPrompt {
+                    on_ready: move |_| is_ready.set(true)
+                }
+            }
+        }
     }
 }
