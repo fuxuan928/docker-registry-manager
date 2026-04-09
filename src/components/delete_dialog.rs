@@ -4,6 +4,41 @@ use dioxus::prelude::*;
 use crate::api::RegistryClient;
 use crate::models::AuthConfig;
 
+fn dialog_state_class(completed: bool, deleting: bool, has_tags: bool) -> &'static str {
+    if completed {
+        "delete-dialog-state delete-dialog-complete-state"
+    } else if deleting {
+        "delete-dialog-state delete-dialog-progress-state"
+    } else if has_tags {
+        "delete-dialog-state delete-dialog-confirm-state"
+    } else {
+        "delete-dialog-state delete-dialog-info-state"
+    }
+}
+
+fn normalized_dialog_flags(completed: bool, deleting: bool) -> (bool, bool) {
+    if completed {
+        (true, false)
+    } else {
+        (completed, deleting)
+    }
+}
+
+#[cfg(target_arch = "wasm32")]
+fn copy_button_text(copied: bool) -> &'static str {
+    if copied { "✓" } else { "📋" }
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn desktop_copy_feedback_after_attempt() -> bool {
+    false
+}
+
+#[cfg(not(target_arch = "wasm32"))]
+fn copy_button_text(_: bool) -> &'static str {
+    "📋"
+}
+
 /// Deletion result for tracking progress
 #[derive(Clone, Debug)]
 pub struct DeletionResult {
@@ -33,6 +68,8 @@ pub fn DeleteRepositoryDialog(
     
     let total_tags = tags.len();
     let has_tags = total_tags > 0;
+    let (is_completed, is_deleting) = normalized_dialog_flags(completed(), deleting());
+    let state_class = dialog_state_class(is_completed, is_deleting, has_tags);
     let tags_clone = tags.clone();
     let url_clone = registry_url.clone();
     let auth_clone = registry_auth.clone();
@@ -82,6 +119,7 @@ pub fn DeleteRepositoryDialog(
                 }
             }
             
+            deleting.set(false);
             result.set(DeletionResult { deleted, failed, errors });
             completed.set(true);
         });
@@ -91,7 +129,7 @@ pub fn DeleteRepositoryDialog(
         div {
             class: "modal-overlay",
             onclick: move |_| {
-                if !deleting() {
+                if !is_deleting {
                     on_cancel.call(());
                 }
             },
@@ -99,23 +137,29 @@ pub fn DeleteRepositoryDialog(
             div {
                 class: "modal delete-dialog",
                 onclick: move |e| e.stop_propagation(),
+
+                div {
+                    class: "dialog-header",
+                    h3 { "Delete Repository" }
+                }
                 
-                h3 { "Delete Repository" }
-                
-                if completed() {
+                if is_completed {
                     // Deletion completed
                     div {
-                        class: "delete-summary",
-                        p { "Repository deletion completed." }
-                        p { 
-                            "Deleted "
-                            strong { "{result().deleted}" }
-                            " of {total_tags} tags."
+                        class: "dialog-body {state_class}",
+                        div {
+                            class: "dialog-section delete-summary",
+                            p { "Repository deletion completed." }
+                            p {
+                                "Deleted "
+                                strong { "{result().deleted}" }
+                                " of {total_tags} tags."
+                            }
                         }
                         
                         if result().failed > 0 {
                             div {
-                                class: "error-summary",
+                                class: "dialog-section error-summary",
                                 p { class: "error", "Failed to delete {result().failed} tags:" }
                                 div {
                                     class: "error-list",
@@ -132,25 +176,29 @@ pub fn DeleteRepositoryDialog(
                             }
                         }
                         
-                        button {
-                            class: "primary",
-                            onclick: move |_| on_confirm.call(result()),
-                            "Close"
-                        }
-                    }
-                } else if deleting() {
-                    // Deletion in progress
-                    div {
-                        class: "delete-progress",
-                        p { "Deleting tags..." }
                         div {
-                            class: "progress-bar",
-                            div {
-                                class: "progress-fill",
-                                style: "width: {(progress() * 100) / total_tags.max(1)}%",
+                            class: "dialog-footer",
+                            button {
+                                class: "primary",
+                                onclick: move |_| on_confirm.call(result()),
+                                "Close"
                             }
                         }
-                        p { "{progress()} / {total_tags}" }
+                    }
+                } else if is_deleting {
+                    // Deletion in progress
+                    div {
+                        class: "dialog-body {state_class}",
+                        div {
+                            class: "dialog-section delete-progress",
+                            p { "Deleting tags..." }
+                            progress {
+                                class: "progress-bar",
+                                value: "{progress()}",
+                                max: "{total_tags.max(1)}",
+                            }
+                            p { "{progress()} / {total_tags}" }
+                        }
                     }
                 } else if !has_tags {
                     // No tags to delete
@@ -161,17 +209,20 @@ pub fn DeleteRepositoryDialog(
                 } else {
                     // Confirmation dialog
                     div {
-                        class: "delete-confirm",
-                        p {
-                            "Are you sure you want to delete repository "
-                            strong { "{repo_name}" }
-                            "?"
-                        }
-                        
-                        p { class: "warning", "⚠️ This will delete all {total_tags} tags. This action cannot be undone." }
-                        
+                        class: "dialog-body {state_class}",
                         div {
-                            class: "tag-list-preview",
+                            class: "dialog-section delete-summary",
+                            p {
+                                "Are you sure you want to delete repository "
+                                strong { "{repo_name}" }
+                                "?"
+                            }
+                            
+                            p { class: "warning", "⚠️ This will delete all {total_tags} tags. This action cannot be undone." }
+                        }
+
+                        div {
+                            class: "dialog-section tag-list-preview",
                             for tag in tags.iter().take(10) {
                                 span { class: "tag-badge", "{tag}" }
                             }
@@ -181,7 +232,7 @@ pub fn DeleteRepositoryDialog(
                         }
                         
                         div {
-                            class: "form-actions",
+                            class: "dialog-footer form-actions",
                             button {
                                 class: "secondary",
                                 onclick: move |_| on_cancel.call(()),
@@ -223,22 +274,24 @@ fn EmptyRepositoryInfo(
         }
         #[cfg(not(target_arch = "wasm32"))]
         {
-            // For desktop, we'll just show the command - clipboard requires additional setup
-            copied.set(true);
+            copied.set(desktop_copy_feedback_after_attempt());
         }
     };
     
     rsx! {
         div {
-            class: "delete-confirm",
-            p {
-                "Repository "
-                strong { "{repo_name}" }
-                " has no tags."
+            class: "dialog-body delete-dialog-state delete-dialog-info-state",
+            div {
+                class: "dialog-section empty-repository-info",
+                p {
+                    "Repository "
+                    strong { "{repo_name}" }
+                    " has no tags."
+                }
             }
             
             div {
-                class: "info-box",
+                class: "dialog-section info-box empty-repository-info",
                 p { "ℹ️ This repository appears to be empty or contains only untagged manifests." }
                 p { "Docker Registry does not support direct repository deletion via API." }
                 
@@ -255,7 +308,7 @@ fn EmptyRepositoryInfo(
                             class: "btn-icon small",
                             title: "Copy command",
                             onclick: copy_command,
-                            if copied() { "✓" } else { "📋" }
+                            "{copy_button_text(copied())}"
                         }
                     }
                     
@@ -267,7 +320,7 @@ fn EmptyRepositoryInfo(
             }
             
             div {
-                class: "form-actions",
+                class: "dialog-footer form-actions",
                 button {
                     class: "primary",
                     onclick: move |_| on_close.call(()),
@@ -275,5 +328,32 @@ fn EmptyRepositoryInfo(
                 }
             }
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn dialog_state_classes_map_to_semantic_variants() {
+        assert_eq!(dialog_state_class(false, false, true), "delete-dialog-state delete-dialog-confirm-state");
+        assert_eq!(dialog_state_class(false, true, true), "delete-dialog-state delete-dialog-progress-state");
+        assert_eq!(dialog_state_class(true, false, true), "delete-dialog-state delete-dialog-complete-state");
+        assert_eq!(dialog_state_class(false, false, false), "delete-dialog-state delete-dialog-info-state");
+    }
+
+    #[test]
+    fn completed_flags_clear_deleting_state() {
+        assert_eq!(normalized_dialog_flags(true, true), (true, false));
+        assert_eq!(normalized_dialog_flags(false, true), (false, true));
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    #[test]
+    fn desktop_copy_attempt_keeps_feedback_in_idle_state() {
+        assert!(!desktop_copy_feedback_after_attempt());
+        assert_eq!(copy_button_text(false), "📋");
+        assert_eq!(copy_button_text(true), "📋");
     }
 }

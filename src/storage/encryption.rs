@@ -7,21 +7,35 @@ use aes_gcm::{
 };
 use base64::{engine::general_purpose::STANDARD, Engine};
 use rand::RngExt;
-use std::sync::OnceLock;
+use std::sync::{OnceLock, RwLock};
 
 // Key for AES-256 (initialized at runtime)
-static ENCRYPTION_KEY: OnceLock<[u8; 32]> = OnceLock::new();
+static ENCRYPTION_KEY: OnceLock<RwLock<Option<[u8; 32]>>> = OnceLock::new();
+
+fn encryption_key_slot() -> &'static RwLock<Option<[u8; 32]>> {
+    ENCRYPTION_KEY.get_or_init(|| RwLock::new(None))
+}
+
+fn store_key(slot: &RwLock<Option<[u8; 32]>>, key: [u8; 32]) -> Result<(), StorageError> {
+    let mut guard = slot
+        .write()
+        .map_err(|_| StorageError::EncryptionError("Encryption key lock poisoned".to_string()))?;
+    *guard = Some(key);
+    Ok(())
+}
 
 /// Initialize the encryption key
 pub fn init_key(key: [u8; 32]) -> Result<(), StorageError> {
-    ENCRYPTION_KEY.set(key).map_err(|_| {
-        StorageError::EncryptionError("Encryption key already initialized".to_string())
-    })
+    store_key(encryption_key_slot(), key)
 }
 
-fn get_key() -> Result<&'static [u8; 32], StorageError> {
-    ENCRYPTION_KEY
-        .get()
+fn get_key() -> Result<[u8; 32], StorageError> {
+    let guard = encryption_key_slot()
+        .read()
+        .map_err(|_| StorageError::EncryptionError("Encryption key lock poisoned".to_string()))?;
+    guard
+        .as_ref()
+        .copied()
         .ok_or_else(|| StorageError::EncryptionError("Encryption key not initialized".to_string()))
 }
 
@@ -32,8 +46,8 @@ pub fn encrypt_string(data: &str) -> Result<String, StorageError> {
     }
 
     let key = get_key()?;
-    let cipher =
-        Aes256Gcm::new_from_slice(key).map_err(|e| StorageError::EncryptionError(e.to_string()))?;
+    let cipher = Aes256Gcm::new_from_slice(&key)
+        .map_err(|e| StorageError::EncryptionError(e.to_string()))?;
 
     // Generate random 12-byte nonce
     let mut nonce_bytes = [0u8; 12];
@@ -68,8 +82,8 @@ pub fn decrypt_string(data: &str) -> Result<String, StorageError> {
     }
 
     let key = get_key()?;
-    let cipher =
-        Aes256Gcm::new_from_slice(key).map_err(|e| StorageError::EncryptionError(e.to_string()))?;
+    let cipher = Aes256Gcm::new_from_slice(&key)
+        .map_err(|e| StorageError::EncryptionError(e.to_string()))?;
 
     // Extract nonce and ciphertext
     let nonce = Nonce::from_slice(&decoded[..12]);
@@ -85,6 +99,17 @@ pub fn decrypt_string(data: &str) -> Result<String, StorageError> {
 #[cfg(test)]
 mod tests {
     use super::{decrypt_string, encrypt_string, init_key};
+    use std::sync::RwLock;
+
+    #[test]
+    fn store_key_replaces_existing_runtime_key() {
+        let slot = RwLock::new(Some([1u8; 32]));
+
+        super::store_key(&slot, [9u8; 32]).expect("replacing runtime key should succeed");
+
+        let stored = *slot.read().expect("read lock should succeed");
+        assert_eq!(stored, Some([9u8; 32]));
+    }
 
     #[test]
     fn encrypt_and_decrypt_round_trip() {

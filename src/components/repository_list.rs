@@ -13,6 +13,12 @@ pub fn RepositoryList() -> Element {
     let mut app_state = use_context::<AppState>();
     let selected_registry_id = app_state.selected_registry.read().clone();
     let selected_repo = app_state.selected_repo.read().clone();
+    let is_primary_workspace = selected_registry_id.is_some() && selected_repo.is_none();
+    let panel_class = if is_primary_workspace {
+        "repository-list workspace-panel is-primary"
+    } else {
+        "repository-list workspace-panel"
+    };
     
     let mut search = use_signal(String::new);
     let mut repositories = use_signal(Vec::<String>::new);
@@ -33,6 +39,7 @@ pub fn RepositoryList() -> Element {
     
     // Fetch repositories when registry changes
     let _fetch = use_resource(move || {
+        let _ = (app_state.refresh_tick)();
         let registry_id = app_state.selected_registry.read().clone();
         async move {
             if let Some(id) = registry_id {
@@ -44,26 +51,35 @@ pub fn RepositoryList() -> Element {
                         Ok(client) => {
                             match client.get_catalog(None).await {
                                 Ok(catalog) => {
-                                    repositories.set(catalog.repositories);
-                                    error.set(None);
+                                    if app_state.selected_registry.read().as_ref() == Some(&id) {
+                                        repositories.set(catalog.repositories);
+                                        error.set(None);
+                                    }
                                 }
                                 Err(e) => {
-                                    error.set(Some(format!("Failed to fetch repositories: {}", e)));
-                                    repositories.set(Vec::new());
+                                    if app_state.selected_registry.read().as_ref() == Some(&id) {
+                                        error.set(Some(format!("Failed to fetch repositories: {}", e)));
+                                        repositories.set(Vec::new());
+                                    }
                                 }
                             }
                         }
                         Err(e) => {
-                            error.set(Some(format!("Failed to create client: {}", e)));
-                            repositories.set(Vec::new());
+                            if app_state.selected_registry.read().as_ref() == Some(&id) {
+                                error.set(Some(format!("Failed to create client: {}", e)));
+                                repositories.set(Vec::new());
+                            }
                         }
                     }
                     
-                    loading.set(false);
+                    if app_state.selected_registry.read().as_ref() == Some(&id) {
+                        loading.set(false);
+                    }
                 }
             } else {
                 repositories.set(Vec::new());
                 error.set(None);
+                loading.set(false);
             }
         }
     });
@@ -75,36 +91,6 @@ pub fn RepositoryList() -> Element {
         let filtered = filter_strings_owned(&repos, &search_term);
         sorted_alphabetically(&filtered)
     });
-    
-    // Manual refresh function
-    let refresh = move |_| {
-        if let Some(id) = app_state.selected_registry.read().clone() {
-            if let Some(registry) = app_state.get_registry(&id) {
-                loading.set(true);
-                error.set(None);
-                
-                spawn(async move {
-                    match RegistryClient::new(registry.url.clone(), registry.auth.clone()) {
-                        Ok(client) => {
-                            match client.get_catalog(None).await {
-                                Ok(catalog) => {
-                                    repositories.set(catalog.repositories);
-                                    error.set(None);
-                                }
-                                Err(e) => {
-                                    error.set(Some(format!("Failed to fetch: {}", e)));
-                                }
-                            }
-                        }
-                        Err(e) => {
-                            error.set(Some(format!("Client error: {}", e)));
-                        }
-                    }
-                    loading.set(false);
-                });
-            }
-        }
-    };
     
     // Initiate delete for a repository
     let mut initiate_delete = move |repo: String| {
@@ -154,124 +140,125 @@ pub fn RepositoryList() -> Element {
     
     rsx! {
         div {
-            class: "repository-list",
-            
+            class: panel_class,
+
             div {
-                class: "panel-header",
-                h3 { "Repositories" }
-                
+                class: "workspace-panel-header",
+                div {
+                    class: "workspace-panel-title-group",
+                    h3 { "Repositories" }
+                    p { "浏览当前 registry 的 repositories，并在此选择后续操作对象。" }
+                }
+
                 if selected_registry.is_some() {
-                    button {
-                        class: "btn-icon small",
-                        title: "Refresh",
-                        onclick: refresh,
-                        "🔄"
-                    }
-                }
-            }
-            
-            // Delete status message
-            if let Some(status) = delete_status() {
-                div {
-                    class: "status-message",
-                    "{status}"
-                    button {
-                        class: "btn-icon small",
-                        onclick: move |_| delete_status.set(None),
-                        "×"
-                    }
-                }
-            }
-            
-            // Delete dialog
-            if show_delete_dialog() && !delete_repo_name().is_empty() {
-                DeleteRepositoryDialog {
-                    repo_name: delete_repo_name(),
-                    tags: delete_tags(),
-                    registry_url: delete_registry_url(),
-                    registry_auth: delete_registry_auth(),
-                    on_confirm: move |result: DeletionResult| {
-                        let deleted_repo = delete_repo_name();
-                        close_dialog();
-                        
-                        // Show result status
-                        if result.failed == 0 {
-                            delete_status.set(Some(format!("Deleted {} tags successfully", result.deleted)));
-                        } else {
-                            delete_status.set(Some(format!("Deleted {}, {} failed", result.deleted, result.failed)));
-                        }
-                        
-                        // Refresh repository list
-                        if let Some(id) = app_state.selected_registry.read().clone() {
-                            if let Some(registry) = app_state.get_registry(&id) {
-                                spawn(async move {
-                                    if let Ok(client) = RegistryClient::new(registry.url.clone(), registry.auth.clone()) {
-                                        if let Ok(catalog) = client.get_catalog(None).await {
-                                            repositories.set(catalog.repositories);
-                                        }
-                                    }
-                                });
-                            }
-                        }
-                        
-                        // Clear selection if deleted repo was selected
-                        if app_state.selected_repo.read().as_ref() == Some(&deleted_repo) {
-                            app_state.select_repo(None);
-                        }
-                    },
-                    on_cancel: move |_| {
-                        close_dialog();
-                    },
-                }
-            }
-            
-            if selected_registry.is_none() {
-                p {
-                    class: "empty-message",
-                    "Select a registry to view repositories"
-                }
-            } else {
-                // Search input
-                div {
-                    class: "search-box",
-                    input {
-                        r#type: "text",
-                        placeholder: "Search repositories...",
-                        value: "{search}",
-                        oninput: move |e| search.set(e.value()),
-                    }
-                }
-                
-                if loading() {
-                    p { class: "loading", "Loading..." }
-                } else if let Some(err) = error() {
                     div {
-                        class: "error-box",
-                        p { class: "error", "{err}" }
+                        class: "workspace-panel-actions",
                         button {
-                            class: "secondary small",
-                            onclick: refresh,
-                            "Retry"
+                            class: "btn-icon small",
+                            title: "Refresh",
+                            onclick: move |_| app_state.request_refresh(),
+                            "🔄"
                         }
                     }
-                } else if filtered().is_empty() {
+                }
+            }
+
+            div {
+                class: "workspace-panel-body",
+
+                // Delete status message
+                if let Some(status) = delete_status() {
+                    div {
+                        class: "status-message",
+                        "{status}"
+                        button {
+                            class: "btn-icon small",
+                            onclick: move |_| delete_status.set(None),
+                            "×"
+                        }
+                    }
+                }
+
+                // Delete dialog
+                if show_delete_dialog() && !delete_repo_name().is_empty() {
+                    DeleteRepositoryDialog {
+                        repo_name: delete_repo_name(),
+                        tags: delete_tags(),
+                        registry_url: delete_registry_url(),
+                        registry_auth: delete_registry_auth(),
+                        on_confirm: move |result: DeletionResult| {
+                            let deleted_repo = delete_repo_name();
+                            close_dialog();
+
+                            // Show result status
+                            if result.failed == 0 {
+                                delete_status.set(Some(format!("Deleted {} tags successfully", result.deleted)));
+                            } else {
+                                delete_status.set(Some(format!("Deleted {}, {} failed", result.deleted, result.failed)));
+                            }
+
+                            // Refresh repository list
+                            app_state.request_refresh();
+
+                            // Clear selection if deleted repo was selected
+                            if app_state.selected_repo.read().as_ref() == Some(&deleted_repo) {
+                                app_state.select_repo(None);
+                            }
+                        },
+                        on_cancel: move |_| {
+                            close_dialog();
+                        },
+                    }
+                }
+
+                if selected_registry.is_none() {
                     p {
                         class: "empty-message",
-                        if search().is_empty() {
-                            "No repositories found"
-                        } else {
-                            "No matching repositories"
-                        }
+                        "Select a registry to view repositories"
                     }
                 } else {
+                    // Search input
                     div {
-                        class: "list",
-                        for repo in filtered() {
-                            RepositoryItem {
-                                repo: repo.clone(),
-                                is_selected: selected_repo.as_ref() == Some(&repo),
-                                on_select: move |name: String| app_state.select_repo(Some(name)),
-                                on_delete: move |name: String| initiate_delete(name),
+                        class: "search-box",
+                        input {
+                            r#type: "text",
+                            placeholder: "Search repositories...",
+                            value: "{search}",
+                            oninput: move |e| search.set(e.value()),
+                        }
+                    }
+
+                    if loading() {
+                        p { class: "loading", "Loading..." }
+                    } else if let Some(err) = error() {
+                        div {
+                            class: "error-box",
+                            p { class: "error", "{err}" }
+                            button {
+                                class: "secondary small",
+                                onclick: move |_| app_state.request_refresh(),
+                                "Retry"
+                            }
+                        }
+                    } else if filtered().is_empty() {
+                        p {
+                            class: "empty-message",
+                            if search().is_empty() {
+                                "No repositories found"
+                            } else {
+                                "No matching repositories"
+                            }
+                        }
+                    } else {
+                        div {
+                            class: "list",
+                            for repo in filtered() {
+                                RepositoryItem {
+                                    repo: repo.clone(),
+                                    is_selected: selected_repo.as_ref() == Some(&repo),
+                                    on_select: move |name: String| app_state.select_repo(Some(name)),
+                                    on_delete: move |name: String| initiate_delete(name),
+                                }
                             }
                         }
                     }
