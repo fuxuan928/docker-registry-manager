@@ -19,3 +19,8 @@ script = []
 # Javascript code file
 # serve: [dev-server] only
 script = []
+
+[bundle]
+identifier = "com.dev.docker-registry-manager"
+publisher = "Dev"
+icon = ["assets/app.ico"]

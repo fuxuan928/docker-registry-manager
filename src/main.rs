@@ -8,7 +8,7 @@ use docker_registry_manager::components::App;
 const MAIN_CSS: &str = include_str!("../assets/main.css");
 
 /// Embedded favicon (base64 encoded for data URI)
-const FAVICON_ICO: &[u8] = include_bytes!("../assets/favicon.ico");
+const FAVICON_ICO: &[u8] = include_bytes!("../assets/app.ico");
 
 /// Get WebView2 data directory in AppData
 #[cfg(all(windows, not(target_arch = "wasm32")))]
