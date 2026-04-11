@@ -21,25 +21,25 @@ jobs:
             arch: amd64
             target: x86_64-pc-windows-msvc
             artifact_name: docker-registry-manager-windows-amd64
-            bundle_path: target/dx/docker-registry-manager/bundle/windows/
+            bundle_path: target/dx/docker-registry-manager/release/windows/
           - os: macos-latest
             platform: macos
             arch: amd64
             target: x86_64-apple-darwin
             artifact_name: docker-registry-manager-macos-amd64
-            bundle_path: target/dx/docker-registry-manager/bundle/macos/
+            bundle_path: target/dx/docker-registry-manager/release/macos/
           - os: macos-latest
             platform: macos
             arch: arm64
             target: aarch64-apple-darwin
             artifact_name: docker-registry-manager-macos-arm64
-            bundle_path: target/dx/docker-registry-manager/bundle/macos/
+            bundle_path: target/dx/docker-registry-manager/release/macos/
           - os: ubuntu-latest
             platform: linux
             arch: amd64
             target: x86_64-unknown-linux-gnu
             artifact_name: docker-registry-manager-linux-amd64
-            bundle_path: target/dx/docker-registry-manager/bundle/linux/
+            bundle_path: target/dx/docker-registry-manager/release/linux/
 
     steps:
       - uses: actions/checkout@v5
