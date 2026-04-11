@@ -1,5 +1,8 @@
 name: Release
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 on:
   push:
     tags:
@@ -19,13 +22,13 @@ jobs:
             target: x86_64-pc-windows-msvc
             artifact_name: docker-registry-manager-windows-amd64
             bundle_path: target/dx/docker-registry-manager/bundle/windows/
-          - os: macos-13
+          - os: macos-latest
             platform: macos
             arch: amd64
             target: x86_64-apple-darwin
             artifact_name: docker-registry-manager-macos-amd64
             bundle_path: target/dx/docker-registry-manager/bundle/macos/
-          - os: macos-14
+          - os: macos-latest
             platform: macos
             arch: arm64
             target: aarch64-apple-darwin
@@ -39,7 +42,7 @@ jobs:
             bundle_path: target/dx/docker-registry-manager/bundle/linux/
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
@@ -51,6 +54,17 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget libssl-dev libgtk-3-dev libayatana-appindicator3-dev librsvg2-dev libxdo-dev
+
+      - name: Install dependencies (macOS)
+        if: startsWith(matrix.os, 'macos')
+        shell: bash
+        run: |
+          brew install openssl@3
+          OPENSSL_PREFIX="$(brew --prefix openssl@3)"
+          sudo mkdir -p /usr/local/opt
+          if [ ! -e /usr/local/opt/openssl@3 ]; then
+            sudo ln -s "$OPENSSL_PREFIX" /usr/local/opt/openssl@3
+          fi
 
       - name: Install cargo-binstall
         uses: cargo-bins/cargo-binstall@main
@@ -79,7 +93,7 @@ jobs:
     permissions:
       contents: write
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
 
       - name: Download all artifacts
         uses: actions/download-artifact@v4

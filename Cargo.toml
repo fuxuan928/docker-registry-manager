@@ -1,6 +1,6 @@
 [package]
 name = "docker-registry-manager"
-version = "0.2.3"
+version = "0.2.4"
 authors = ["Xuan Fu <fuxuan928@gmail.com>"]
 edition = "2021"
 
