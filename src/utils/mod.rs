@@ -1,15 +1,15 @@
 //! Utility functions
 
-mod filter;
-mod sort;
-mod size;
 mod curl;
 mod export;
+mod filter;
 mod history;
+mod size;
+mod sort;
 
-pub use filter::*;
-pub use sort::*;
-pub use size::*;
 pub use curl::*;
 pub use export::*;
+pub use filter::*;
 pub use history::*;
+pub use size::*;
+pub use sort::*;

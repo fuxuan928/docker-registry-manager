@@ -1,9 +1,9 @@
 //! Delete repository dialog component
 
-use dioxus::prelude::*;
 use crate::api::RegistryClient;
 use crate::models::AuthConfig;
 use crate::state::AppState;
+use dioxus::prelude::*;
 
 fn dialog_state_class(completed: bool, deleting: bool, has_tags: bool) -> &'static str {
     if completed {
@@ -27,7 +27,11 @@ fn normalized_dialog_flags(completed: bool, deleting: bool) -> (bool, bool) {
 
 #[cfg(target_arch = "wasm32")]
 fn copy_button_text(copied: bool) -> &'static str {
-    if copied { "✓" } else { "📋" }
+    if copied {
+        "✓"
+    } else {
+        "📋"
+    }
 }
 
 #[cfg(not(target_arch = "wasm32"))]
@@ -68,7 +72,7 @@ pub fn DeleteRepositoryDialog(
         failed: 0,
         errors: Vec::new(),
     });
-    
+
     let total_tags = tags.len();
     let has_tags = total_tags > 0;
     let (is_completed, is_deleting) = normalized_dialog_flags(completed(), deleting());
@@ -77,19 +81,19 @@ pub fn DeleteRepositoryDialog(
     let url_clone = registry_url.clone();
     let auth_clone = registry_auth.clone();
     let repo_clone = repo_name.clone();
-    
+
     let start_deletion = move |_| {
         deleting.set(true);
         let tags_to_delete = tags_clone.clone();
         let url = url_clone.clone();
         let auth = auth_clone.clone();
         let repo = repo_clone.clone();
-        
+
         spawn(async move {
             let mut deleted = 0usize;
             let mut failed = 0usize;
             let mut errors = Vec::new();
-            
+
             match RegistryClient::new(url, auth) {
                 Ok(client) => {
                     for (i, tag) in tags_to_delete.iter().enumerate() {
@@ -100,12 +104,15 @@ pub fn DeleteRepositoryDialog(
                                         Ok(_) => deleted += 1,
                                         Err(e) => {
                                             failed += 1;
-                                            errors.push(strings.tag_error_entry(tag, &e.to_string()));
+                                            errors
+                                                .push(strings.tag_error_entry(tag, &e.to_string()));
                                         }
                                     }
                                 } else {
                                     failed += 1;
-                                    errors.push(strings.tag_error_entry(tag, strings.no_digest_returned()));
+                                    errors.push(
+                                        strings.tag_error_entry(tag, strings.no_digest_returned()),
+                                    );
                                 }
                             }
                             Err(e) => {
@@ -121,13 +128,17 @@ pub fn DeleteRepositoryDialog(
                     failed = tags_to_delete.len();
                 }
             }
-            
+
             deleting.set(false);
-            result.set(DeletionResult { deleted, failed, errors });
+            result.set(DeletionResult {
+                deleted,
+                failed,
+                errors,
+            });
             completed.set(true);
         });
     };
-    
+
     rsx! {
         div {
             class: "modal-overlay",
@@ -136,7 +147,7 @@ pub fn DeleteRepositoryDialog(
                     on_cancel.call(());
                 }
             },
-            
+
             div {
                 class: "modal delete-dialog",
                 onclick: move |e| e.stop_propagation(),
@@ -145,7 +156,7 @@ pub fn DeleteRepositoryDialog(
                     class: "dialog-header",
                     h3 { "{strings.delete_repository_title()}" }
                 }
-                
+
                 if is_completed {
                     // Deletion completed
                     div {
@@ -155,7 +166,7 @@ pub fn DeleteRepositoryDialog(
                             p { "{strings.repository_deletion_completed()}" }
                             p { "{strings.deleted_of_tags(result().deleted, total_tags)}" }
                         }
-                        
+
                         if result().failed > 0 {
                             div {
                                 class: "dialog-section error-summary",
@@ -174,7 +185,7 @@ pub fn DeleteRepositoryDialog(
                                 }
                             }
                         }
-                        
+
                         div {
                             class: "dialog-footer",
                             button {
@@ -214,7 +225,7 @@ pub fn DeleteRepositoryDialog(
                             p {
                                 "{strings.delete_repository_confirm(&repo_name)}"
                             }
-                             
+
                             p { class: "warning", "{strings.delete_all_tags_warning(total_tags)}" }
                         }
 
@@ -227,7 +238,7 @@ pub fn DeleteRepositoryDialog(
                                 span { class: "more-tags", "{strings.more_items(total_tags - 10)}" }
                             }
                         }
-                        
+
                         div {
                             class: "dialog-footer form-actions",
                             button {
@@ -248,19 +259,15 @@ pub fn DeleteRepositoryDialog(
     }
 }
 
-
 /// Component shown when repository has no tags
 #[component]
-fn EmptyRepositoryInfo(
-    repo_name: String,
-    on_close: EventHandler<()>,
-) -> Element {
+fn EmptyRepositoryInfo(repo_name: String, on_close: EventHandler<()>) -> Element {
     let app_state = use_context::<AppState>();
     let strings = app_state.strings();
     let mut copied = use_signal(|| false);
-    
+
     let gc_command = "docker exec <registry-container> bin/registry garbage-collect /etc/docker/registry/config.yml --delete-untagged";
-    
+
     let copy_command = move |_| {
         #[cfg(target_arch = "wasm32")]
         {
@@ -276,7 +283,7 @@ fn EmptyRepositoryInfo(
             copied.set(desktop_copy_feedback_after_attempt());
         }
     };
-    
+
     rsx! {
         div {
             class: "dialog-body delete-dialog-state delete-dialog-info-state",
@@ -284,18 +291,18 @@ fn EmptyRepositoryInfo(
                 class: "dialog-section empty-repository-info",
                 p { "{strings.repository_has_no_tags(&repo_name)}" }
             }
-            
+
             div {
                 class: "dialog-section info-box empty-repository-info",
                 p { "{strings.empty_repository_hint()}" }
                 p { "{strings.api_repository_delete_not_supported()}" }
-                
+
                 div {
                     class: "gc-section",
-                    p { 
+                    p {
                         strong { "{strings.garbage_collect_hint()}" }
                     }
-                    
+
                     div {
                         class: "command-box",
                         code { "{gc_command}" }
@@ -306,14 +313,14 @@ fn EmptyRepositoryInfo(
                             "{copy_button_text(copied())}"
                         }
                     }
-                    
+
                     p {
                         class: "hint",
                         "{strings.replace_registry_container_hint()}"
                     }
                 }
             }
-            
+
             div {
                 class: "dialog-footer form-actions",
                 button {
@@ -332,10 +339,22 @@ mod tests {
 
     #[test]
     fn dialog_state_classes_map_to_semantic_variants() {
-        assert_eq!(dialog_state_class(false, false, true), "delete-dialog-state delete-dialog-confirm-state");
-        assert_eq!(dialog_state_class(false, true, true), "delete-dialog-state delete-dialog-progress-state");
-        assert_eq!(dialog_state_class(true, false, true), "delete-dialog-state delete-dialog-complete-state");
-        assert_eq!(dialog_state_class(false, false, false), "delete-dialog-state delete-dialog-info-state");
+        assert_eq!(
+            dialog_state_class(false, false, true),
+            "delete-dialog-state delete-dialog-confirm-state"
+        );
+        assert_eq!(
+            dialog_state_class(false, true, true),
+            "delete-dialog-state delete-dialog-progress-state"
+        );
+        assert_eq!(
+            dialog_state_class(true, false, true),
+            "delete-dialog-state delete-dialog-complete-state"
+        );
+        assert_eq!(
+            dialog_state_class(false, false, false),
+            "delete-dialog-state delete-dialog-info-state"
+        );
     }
 
     #[test]

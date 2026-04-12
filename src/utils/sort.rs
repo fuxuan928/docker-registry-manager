@@ -14,5 +14,7 @@ pub fn sorted_alphabetically(items: &[String]) -> Vec<String> {
 
 /// Check if a slice is sorted alphabetically
 pub fn is_sorted_alphabetically(items: &[String]) -> bool {
-    items.windows(2).all(|w| w[0].to_lowercase() <= w[1].to_lowercase())
+    items
+        .windows(2)
+        .all(|w| w[0].to_lowercase() <= w[1].to_lowercase())
 }

@@ -13,7 +13,7 @@ impl WebStorage {
     pub fn new() -> Self {
         Self
     }
-    
+
     fn prefixed_key(&self, key: &str) -> String {
         format!("{}{}", STORAGE_PREFIX, key)
     }
@@ -31,7 +31,7 @@ impl StorageAdapter for WebStorage {
         LocalStorage::set(self.prefixed_key(key), encoded)
             .map_err(|e| StorageError::IoError(e.to_string()))
     }
-    
+
     fn retrieve(&self, key: &str) -> Result<Option<Vec<u8>>, StorageError> {
         match LocalStorage::get::<String>(self.prefixed_key(key)) {
             Ok(encoded) => {
@@ -44,12 +44,12 @@ impl StorageAdapter for WebStorage {
             Err(e) => Err(StorageError::IoError(e.to_string())),
         }
     }
-    
+
     fn remove(&self, key: &str) -> Result<(), StorageError> {
         LocalStorage::delete(self.prefixed_key(key));
         Ok(())
     }
-    
+
     fn clear(&self) -> Result<(), StorageError> {
         // Get all keys with our prefix and remove them
         let keys = self.keys()?;
@@ -58,14 +58,14 @@ impl StorageAdapter for WebStorage {
         }
         Ok(())
     }
-    
+
     fn keys(&self) -> Result<Vec<String>, StorageError> {
         let mut keys = Vec::new();
         let storage = web_sys::window()
             .and_then(|w| w.local_storage().ok())
             .flatten()
             .ok_or(StorageError::NotAvailable)?;
-        
+
         let len = storage.length().map_err(|_| StorageError::NotAvailable)?;
         for i in 0..len {
             if let Ok(Some(key)) = storage.key(i) {

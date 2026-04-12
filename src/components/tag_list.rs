@@ -1,10 +1,10 @@
 //! Tag list component
 
-use dioxus::prelude::*;
-use crate::state::AppState;
 use crate::api::RegistryClient;
 use crate::models::TagInfo;
+use crate::state::AppState;
 use crate::utils::format_size;
+use dioxus::prelude::*;
 
 fn tag_checkbox_class() -> &'static str {
     "tag-item-checkbox"
@@ -23,7 +23,7 @@ pub fn TagList() -> Element {
     } else {
         "tag-list workspace-panel is-secondary"
     };
-    
+
     let mut search = use_signal(String::new);
     let mut tags = use_signal(Vec::<TagInfo>::new);
     let mut selected_tags = use_signal(Vec::<String>::new);
@@ -31,9 +31,10 @@ pub fn TagList() -> Element {
     let mut error = use_signal(|| None::<String>);
     let mut delete_status = use_signal(|| None::<String>);
     let mut show_delete_confirm = use_signal(|| false);
-    
+
     // Get the selected registry config
-    let selected_registry = selected_registry_id.as_ref()
+    let selected_registry = selected_registry_id
+        .as_ref()
         .and_then(|id| app_state.get_registry(id));
 
     use_effect(move || {
@@ -42,7 +43,7 @@ pub fn TagList() -> Element {
         selected_tags.set(Vec::new());
         show_delete_confirm.set(false);
     });
-    
+
     // Fetch tags when repo changes
     let _fetch = use_resource(move || {
         let _ = (app_state.refresh_tick)();
@@ -53,13 +54,14 @@ pub fn TagList() -> Element {
                 if let Some(registry) = app_state.get_registry(&id) {
                     loading.set(true);
                     error.set(None);
-                    
+
                     match RegistryClient::new(registry.url.clone(), registry.auth.clone()) {
                         Ok(client) => {
                             match client.get_tags(&repo_name).await {
                                 Ok(tags_response) => {
                                     // Convert to TagInfo (without size/digest for now)
-                                    let tag_infos: Vec<TagInfo> = tags_response.tags
+                                    let tag_infos: Vec<TagInfo> = tags_response
+                                        .tags
                                         .unwrap_or_default()
                                         .into_iter()
                                         .map(|name| TagInfo {
@@ -69,7 +71,8 @@ pub fn TagList() -> Element {
                                         })
                                         .collect();
                                     if app_state.selected_registry.read().as_ref() == Some(&id)
-                                        && app_state.selected_repo.read().as_ref() == Some(&repo_name)
+                                        && app_state.selected_repo.read().as_ref()
+                                            == Some(&repo_name)
                                     {
                                         tags.set(tag_infos);
                                         error.set(None);
@@ -77,9 +80,12 @@ pub fn TagList() -> Element {
                                 }
                                 Err(e) => {
                                     if app_state.selected_registry.read().as_ref() == Some(&id)
-                                        && app_state.selected_repo.read().as_ref() == Some(&repo_name)
+                                        && app_state.selected_repo.read().as_ref()
+                                            == Some(&repo_name)
                                     {
-                                        error.set(Some(strings.failed_to_fetch_tags(&e.to_string())));
+                                        error.set(Some(
+                                            strings.failed_to_fetch_tags(&e.to_string()),
+                                        ));
                                         tags.set(Vec::new());
                                     }
                                 }
@@ -94,7 +100,7 @@ pub fn TagList() -> Element {
                             }
                         }
                     }
-                    
+
                     if app_state.selected_registry.read().as_ref() == Some(&id)
                         && app_state.selected_repo.read().as_ref() == Some(&repo_name)
                     {
@@ -108,7 +114,7 @@ pub fn TagList() -> Element {
             }
         }
     });
-    
+
     // Filter tags
     let filtered = use_memo(move || {
         let tag_list = tags.read();
@@ -124,7 +130,7 @@ pub fn TagList() -> Element {
                 .collect()
         }
     });
-    
+
     rsx! {
         div {
             class: panel_class,
@@ -329,7 +335,11 @@ fn TagItem(
 ) -> Element {
     let name = tag.name.clone();
     let name_toggle = tag.name.clone();
-    let size_str = if tag.size > 0 { format_size(tag.size) } else { String::new() };
+    let size_str = if tag.size > 0 {
+        format_size(tag.size)
+    } else {
+        String::new()
+    };
     let digest_short = if tag.digest.len() > 19 {
         format!("{}...", &tag.digest[..19])
     } else if tag.digest.is_empty() {
@@ -337,7 +347,7 @@ fn TagItem(
     } else {
         tag.digest.clone()
     };
-    
+
     rsx! {
         div {
             class: if is_selected { "list-item tag-item selected" } else { "list-item tag-item" },
@@ -367,7 +377,6 @@ fn TagItem(
     }
 }
 
-
 /// Delete tags confirmation dialog
 #[component]
 fn DeleteTagsDialog(
@@ -378,21 +387,21 @@ fn DeleteTagsDialog(
     let app_state = use_context::<AppState>();
     let strings = app_state.strings();
     let count = tags_to_delete.len();
-    
+
     rsx! {
         div {
             class: "modal-overlay",
-            
+
             div {
                 class: "modal delete-dialog",
                 onclick: move |e| e.stop_propagation(),
-                
+
                 h3 { "{strings.delete_tags()}" }
-                
+
                 div {
                     class: "delete-confirm",
                     p { "{strings.delete_tags_confirm(count)}" }
-                    
+
                     div {
                         class: "tag-list-preview",
                         for tag in tags_to_delete.iter().take(10) {
@@ -404,7 +413,7 @@ fn DeleteTagsDialog(
                     }
 
                     p { class: "warning", "{strings.action_cannot_be_undone()}" }
-                    
+
                     div {
                         class: "form-actions",
                         button {

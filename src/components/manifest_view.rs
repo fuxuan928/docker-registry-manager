@@ -1,12 +1,17 @@
 //! Manifest view component
 
-use dioxus::prelude::*;
-use crate::state::AppState;
 use crate::api::RegistryClient;
-use crate::models::{Manifest, HistoryEntry};
+use crate::models::{HistoryEntry, Manifest};
+use crate::state::AppState;
 use crate::utils::{format_size, sorted_history_chronologically};
+use dioxus::prelude::*;
 
-fn manifest_context_matches(app_state: &AppState, registry_id: &str, repo_name: &str, tag_name: &str) -> bool {
+fn manifest_context_matches(
+    app_state: &AppState,
+    registry_id: &str,
+    repo_name: &str,
+    tag_name: &str,
+) -> bool {
     manifest_request_is_current(
         app_state.selected_registry.read().as_deref(),
         app_state.selected_repo.read().as_deref(),
@@ -24,14 +29,14 @@ pub fn ManifestView() -> Element {
     let strings = app_state.strings();
     let selected_tag = app_state.selected_tag.read().clone();
     let selected_tag_name = selected_tag.clone().unwrap_or_default();
-    
+
     let mut manifest = use_signal(|| None::<Manifest>);
     let mut digest = use_signal(String::new);
     let mut raw_json = use_signal(String::new);
     let mut show_raw = use_signal(|| false);
     let mut loading = use_signal(|| false);
     let mut error = use_signal(|| None::<String>);
-    
+
     // Fetch manifest when tag changes
     let _fetch = use_resource(move || {
         let _ = (app_state.refresh_tick)();
@@ -51,30 +56,32 @@ pub fn ManifestView() -> Element {
                     manifest.set(empty_manifest.clone());
                     digest.set(empty_digest.clone());
                     raw_json.set(empty_raw_json.clone());
-                    
+
                     match RegistryClient::new(registry.url.clone(), registry.auth.clone()) {
-                        Ok(client) => {
-                            match client.get_manifest(&repo_name, &tag_name).await {
-                                Ok((m, d)) => {
-                                    if manifest_context_matches(&app_state, &id, &repo_name, &tag_name) {
-                                        if let Ok(json) = serde_json::to_string_pretty(&m) {
-                                            raw_json.set(json);
-                                        }
-                                        digest.set(d);
-                                        manifest.set(Some(m));
-                                        error.set(None);
+                        Ok(client) => match client.get_manifest(&repo_name, &tag_name).await {
+                            Ok((m, d)) => {
+                                if manifest_context_matches(&app_state, &id, &repo_name, &tag_name)
+                                {
+                                    if let Ok(json) = serde_json::to_string_pretty(&m) {
+                                        raw_json.set(json);
                                     }
-                                }
-                                Err(e) => {
-                                    if manifest_context_matches(&app_state, &id, &repo_name, &tag_name) {
-                                        error.set(Some(strings.failed_to_fetch_manifest(&e.to_string())));
-                                        manifest.set(empty_manifest.clone());
-                                        digest.set(empty_digest.clone());
-                                        raw_json.set(empty_raw_json.clone());
-                                    }
+                                    digest.set(d);
+                                    manifest.set(Some(m));
+                                    error.set(None);
                                 }
                             }
-                        }
+                            Err(e) => {
+                                if manifest_context_matches(&app_state, &id, &repo_name, &tag_name)
+                                {
+                                    error.set(Some(
+                                        strings.failed_to_fetch_manifest(&e.to_string()),
+                                    ));
+                                    manifest.set(empty_manifest.clone());
+                                    digest.set(empty_digest.clone());
+                                    raw_json.set(empty_raw_json.clone());
+                                }
+                            }
+                        },
                         Err(e) => {
                             if manifest_context_matches(&app_state, &id, &repo_name, &tag_name) {
                                 error.set(Some(strings.failed_to_create_client(&e.to_string())));
@@ -84,7 +91,7 @@ pub fn ManifestView() -> Element {
                             }
                         }
                     }
-                    
+
                     if manifest_context_matches(&app_state, &id, &repo_name, &tag_name) {
                         loading.set(not_loading);
                     }
@@ -117,12 +124,11 @@ pub fn ManifestView() -> Element {
     } else {
         strings.pending_manifest_summary(&selected_tag_name)
     };
-    
-    
+
     rsx! {
         div {
             class: "manifest-view detail-panel",
-            
+
             div {
                 class: "detail-panel-header",
                 div {
@@ -131,7 +137,7 @@ pub fn ManifestView() -> Element {
                     p { class: "detail-panel-summary", "{panel_summary}" }
                 }
             }
-            
+
             div {
                 class: "detail-panel-body",
             if selected_tag.is_none() {
@@ -154,7 +160,7 @@ pub fn ManifestView() -> Element {
             } else if let Some(m) = manifest() {
                 div {
                     class: "manifest-content",
-                    
+
                     // Basic info
                     section {
                         class: "manifest-section detail-section",
@@ -163,9 +169,9 @@ pub fn ManifestView() -> Element {
                             dt { "{strings.tag()}" }
                             dd { "{selected_tag.clone().unwrap_or_default()}" }
                             dt { "{strings.digest()}" }
-                            dd { 
+                            dd {
                                 class: "digest-value",
-                                "{digest}" 
+                                "{digest}"
                             }
                             dt { "{strings.media_type()}" }
                             dd { "{m.media_type()}" }
@@ -173,7 +179,7 @@ pub fn ManifestView() -> Element {
                             dd { "{format_size(m.total_size())}" }
                         }
                     }
-                    
+
                     // Layers
                     section {
                         class: "manifest-section detail-section",
@@ -191,7 +197,7 @@ pub fn ManifestView() -> Element {
                             }
                         }
                     }
-                    
+
                     // Raw JSON toggle
                     section {
                         class: "manifest-section detail-section",
@@ -253,8 +259,13 @@ fn truncate_digest(digest: &str) -> String {
     }
 }
 
-fn empty_state_guidance(strings: &'static dyn crate::i18n::Strings) -> (&'static str, &'static str) {
-    (strings.select_tag_to_inspect(), strings.select_tag_guidance())
+fn empty_state_guidance(
+    strings: &'static dyn crate::i18n::Strings,
+) -> (&'static str, &'static str) {
+    (
+        strings.select_tag_to_inspect(),
+        strings.select_tag_guidance(),
+    )
 }
 
 fn reset_detail_state() -> (Option<Manifest>, String, String, bool, bool) {
@@ -284,12 +295,12 @@ pub fn HistoryView(history: Vec<HistoryEntry>) -> Element {
     let app_state = use_context::<AppState>();
     let strings = app_state.strings();
     let sorted = sorted_history_chronologically(&history);
-    
+
     rsx! {
         div {
             class: "history-view",
             h4 { "{strings.build_history()}" }
-            
+
             if sorted.is_empty() {
                 p { class: "empty-message", "{strings.no_history_available()}" }
             } else {
@@ -299,15 +310,15 @@ pub fn HistoryView(history: Vec<HistoryEntry>) -> Element {
                         div {
                             key: "{i}",
                             class: "history-item",
-                            
+
                             if let Some(created) = &entry.created {
                                 span { class: "history-time", "{created}" }
                             }
-                            
+
                             if let Some(cmd) = &entry.created_by {
                                 pre { class: "history-command", "{cmd}" }
                             }
-                            
+
                             if entry.empty_layer == Some(true) {
                                 span { class: "empty-layer-badge", "{strings.empty_layer()}" }
                             }
@@ -357,9 +368,8 @@ mod tests {
 
     #[test]
     fn empty_state_guidance_prompts_selection_and_preview_scope() {
-        let (title, body) = empty_state_guidance(
-            crate::i18n::strings_for_locale(crate::models::Locale::En),
-        );
+        let (title, body) =
+            empty_state_guidance(crate::i18n::strings_for_locale(crate::models::Locale::En));
 
         assert_eq!(title, "Select a tag to inspect");
         assert!(body.contains("Choose a tag"));

@@ -28,17 +28,17 @@ pub fn export_registries(registries: &[RegistryConfig]) -> String {
             },
         })
         .collect();
-    
+
     serde_json::to_string_pretty(&exported).unwrap_or_default()
 }
 
 /// Check if exported JSON contains any sensitive credentials
 pub fn contains_credentials(json: &str) -> bool {
     let lower = json.to_lowercase();
-    lower.contains("\"password\"") || 
-    lower.contains("\"token\"") ||
-    lower.contains(":\"bearer ") ||
-    lower.contains(":\"basic ")
+    lower.contains("\"password\"")
+        || lower.contains("\"token\"")
+        || lower.contains(":\"bearer ")
+        || lower.contains(":\"basic ")
 }
 
 /// Export tags to JSON format
@@ -57,17 +57,16 @@ pub fn export_tags_csv(tags: &[TagInfo]) -> String {
 
 /// Check if exported data contains all tags
 pub fn export_contains_all_tags(export: &str, tags: &[TagInfo]) -> bool {
-    tags.iter().all(|tag| {
-        export.contains(&tag.name) && export.contains(&tag.digest)
-    })
+    tags.iter()
+        .all(|tag| export.contains(&tag.name) && export.contains(&tag.digest))
 }
 
 /// Import registry configurations from JSON
 /// Returns configs that need credentials to be filled in
 pub fn import_registries(json: &str) -> Result<Vec<RegistryConfig>, String> {
-    let exported: Vec<ExportedRegistryConfig> = serde_json::from_str(json)
-        .map_err(|e| format!("Invalid JSON: {}", e))?;
-    
+    let exported: Vec<ExportedRegistryConfig> =
+        serde_json::from_str(json).map_err(|e| format!("Invalid JSON: {}", e))?;
+
     let configs = exported
         .into_iter()
         .map(|e| {
@@ -81,7 +80,7 @@ pub fn import_registries(json: &str) -> Result<Vec<RegistryConfig>, String> {
             }
         })
         .collect();
-    
+
     Ok(configs)
 }
 

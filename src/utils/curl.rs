@@ -6,11 +6,11 @@ use crate::models::{ApiRequestInfo, AuthConfig};
 pub fn generate_curl_command(base_url: &str, repo: &str, tag: &str, auth: &AuthConfig) -> String {
     let url = format!("{}/v2/{}/manifests/{}", base_url, repo, tag);
     let mut parts = vec!["curl".to_string()];
-    
+
     // Add Accept header for manifest
     parts.push("-H".to_string());
     parts.push("'Accept: application/vnd.docker.distribution.manifest.v2+json'".to_string());
-    
+
     // Add auth header
     match auth {
         AuthConfig::BasicAuth { username, .. } => {
@@ -23,7 +23,7 @@ pub fn generate_curl_command(base_url: &str, repo: &str, tag: &str, auth: &AuthC
         }
         AuthConfig::Anonymous | AuthConfig::TlsCert { .. } => {}
     }
-    
+
     parts.push(format!("'{}'", url));
     parts.join(" ")
 }
@@ -31,13 +31,13 @@ pub fn generate_curl_command(base_url: &str, repo: &str, tag: &str, auth: &AuthC
 /// Generate a cURL command from API request info
 pub fn generate_curl_command_from_info(info: &ApiRequestInfo) -> String {
     let mut parts = vec!["curl".to_string()];
-    
+
     // Add method if not GET
     if info.method != "GET" {
         parts.push("-X".to_string());
         parts.push(info.method.clone());
     }
-    
+
     // Add headers
     for (key, value) in &info.headers {
         // Skip sensitive headers or mask them
@@ -55,10 +55,10 @@ pub fn generate_curl_command_from_info(info: &ApiRequestInfo) -> String {
         parts.push("-H".to_string());
         parts.push(format!("'{}: {}'", key, display_value));
     }
-    
+
     // Add URL (quoted for safety)
     parts.push(format!("'{}'", info.url));
-    
+
     parts.join(" ")
 }
 
@@ -77,7 +77,7 @@ pub fn create_request_info(
         response_body: None,
         curl_command: String::new(),
     });
-    
+
     ApiRequestInfo {
         method: method.to_string(),
         url: url.to_string(),

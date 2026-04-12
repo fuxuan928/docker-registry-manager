@@ -1,11 +1,11 @@
 //! Repository list component
 
-use dioxus::prelude::*;
-use crate::state::AppState;
 use crate::api::RegistryClient;
-use crate::models::AuthConfig;
 use crate::components::delete_dialog::{DeleteRepositoryDialog, DeletionResult};
+use crate::models::AuthConfig;
+use crate::state::AppState;
 use crate::utils::{filter_strings_owned, sorted_alphabetically};
+use dioxus::prelude::*;
 
 /// Repository list component
 #[component]
@@ -20,24 +20,25 @@ pub fn RepositoryList() -> Element {
     } else {
         "repository-list workspace-panel"
     };
-    
+
     let mut search = use_signal(String::new);
     let mut repositories = use_signal(Vec::<String>::new);
     let mut loading = use_signal(|| false);
     let mut error = use_signal(|| None::<String>);
     let mut delete_status = use_signal(|| None::<String>);
-    
+
     // Delete dialog state
     let mut show_delete_dialog = use_signal(|| false);
     let mut delete_repo_name = use_signal(String::new);
     let mut delete_tags = use_signal(Vec::<String>::new);
     let mut delete_registry_url = use_signal(String::new);
     let mut delete_registry_auth = use_signal(|| AuthConfig::Anonymous);
-    
+
     // Get the selected registry config
-    let selected_registry = selected_registry_id.as_ref()
+    let selected_registry = selected_registry_id
+        .as_ref()
         .and_then(|id| app_state.get_registry(id));
-    
+
     // Fetch repositories when registry changes
     let _fetch = use_resource(move || {
         let _ = (app_state.refresh_tick)();
@@ -47,24 +48,24 @@ pub fn RepositoryList() -> Element {
                 if let Some(registry) = app_state.get_registry(&id) {
                     loading.set(true);
                     error.set(None);
-                    
+
                     match RegistryClient::new(registry.url.clone(), registry.auth.clone()) {
-                        Ok(client) => {
-                            match client.get_catalog(None).await {
-                                Ok(catalog) => {
-                                    if app_state.selected_registry.read().as_ref() == Some(&id) {
-                                        repositories.set(catalog.repositories);
-                                        error.set(None);
-                                    }
-                                }
-                                Err(e) => {
-                                    if app_state.selected_registry.read().as_ref() == Some(&id) {
-                                        error.set(Some(strings.failed_to_fetch_repositories(&e.to_string())));
-                                        repositories.set(Vec::new());
-                                    }
+                        Ok(client) => match client.get_catalog(None).await {
+                            Ok(catalog) => {
+                                if app_state.selected_registry.read().as_ref() == Some(&id) {
+                                    repositories.set(catalog.repositories);
+                                    error.set(None);
                                 }
                             }
-                        }
+                            Err(e) => {
+                                if app_state.selected_registry.read().as_ref() == Some(&id) {
+                                    error.set(Some(
+                                        strings.failed_to_fetch_repositories(&e.to_string()),
+                                    ));
+                                    repositories.set(Vec::new());
+                                }
+                            }
+                        },
                         Err(e) => {
                             if app_state.selected_registry.read().as_ref() == Some(&id) {
                                 error.set(Some(strings.failed_to_create_client(&e.to_string())));
@@ -72,7 +73,7 @@ pub fn RepositoryList() -> Element {
                             }
                         }
                     }
-                    
+
                     if app_state.selected_registry.read().as_ref() == Some(&id) {
                         loading.set(false);
                     }
@@ -84,7 +85,7 @@ pub fn RepositoryList() -> Element {
             }
         }
     });
-    
+
     // Filter and sort repositories
     let filtered = use_memo(move || {
         let repos = repositories.read();
@@ -92,7 +93,7 @@ pub fn RepositoryList() -> Element {
         let filtered = filter_strings_owned(&repos, &search_term);
         sorted_alphabetically(&filtered)
     });
-    
+
     // Initiate delete for a repository
     let mut initiate_delete = move |repo: String| {
         if let Some(id) = app_state.selected_registry.read().clone() {
@@ -100,27 +101,26 @@ pub fn RepositoryList() -> Element {
                 let repo_clone = repo.clone();
                 let url = registry.url.clone();
                 let auth = registry.auth.clone();
-                
+
                 // Store registry info for dialog
                 delete_repo_name.set(repo);
                 delete_registry_url.set(url.clone());
                 delete_registry_auth.set(auth.clone());
-                
+
                 // Fetch tags for the repository
                 spawn(async move {
                     match RegistryClient::new(url, auth) {
-                        Ok(client) => {
-                            match client.get_tags(&repo_clone).await {
-                                Ok(tags_response) => {
-                                    let tags = tags_response.tags.unwrap_or_default();
-                                    delete_tags.set(tags);
-                                    show_delete_dialog.set(true);
-                                }
-                                Err(e) => {
-                                    delete_status.set(Some(strings.failed_to_fetch_tags(&e.to_string())));
-                                }
+                        Ok(client) => match client.get_tags(&repo_clone).await {
+                            Ok(tags_response) => {
+                                let tags = tags_response.tags.unwrap_or_default();
+                                delete_tags.set(tags);
+                                show_delete_dialog.set(true);
                             }
-                        }
+                            Err(e) => {
+                                delete_status
+                                    .set(Some(strings.failed_to_fetch_tags(&e.to_string())));
+                            }
+                        },
                         Err(e) => {
                             delete_status.set(Some(strings.client_error(&e.to_string())));
                         }
@@ -129,7 +129,7 @@ pub fn RepositoryList() -> Element {
             }
         }
     };
-    
+
     // Close delete dialog
     let mut close_dialog = move || {
         show_delete_dialog.set(false);
@@ -138,7 +138,7 @@ pub fn RepositoryList() -> Element {
         delete_registry_url.set(String::new());
         delete_registry_auth.set(AuthConfig::Anonymous);
     };
-    
+
     rsx! {
         div {
             class: panel_class,
@@ -281,14 +281,14 @@ fn RepositoryItem(
     let strings = app_state.strings();
     let repo_select = repo.clone();
     let repo_delete = repo.clone();
-    
+
     rsx! {
         div {
             class: if is_selected { "list-item repo-item selected" } else { "list-item repo-item" },
             onclick: move |_| on_select.call(repo_select.clone()),
-            
+
             span { class: "repo-name", "{repo}" }
-            
+
             button {
                 class: "btn-icon small danger",
                 title: "{strings.delete_repository_title()}",

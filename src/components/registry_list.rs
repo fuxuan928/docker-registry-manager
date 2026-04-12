@@ -89,7 +89,8 @@ pub fn RegistryList() -> Element {
 
         async move {
             for registry in registry_snapshot {
-                let status = match RegistryClient::new(registry.url.clone(), registry.auth.clone()) {
+                let status = match RegistryClient::new(registry.url.clone(), registry.auth.clone())
+                {
                     Ok(client) => status_from_ping_result(client.ping().await),
                     Err(error) => status_from_ping_result(Err(error)),
                 };
@@ -535,7 +536,10 @@ mod tests {
 
     #[test]
     fn ping_result_maps_success_and_unauthorized_to_connected() {
-        assert!(matches!(status_from_ping_result(Ok(())), ConnectionStatus::Connected));
+        assert!(matches!(
+            status_from_ping_result(Ok(())),
+            ConnectionStatus::Connected
+        ));
         assert!(matches!(
             status_from_ping_result(Err(ApiError::Unauthorized)),
             ConnectionStatus::Connected

@@ -1,7 +1,7 @@
 //! Authentication handlers for Docker Registry API
 
-mod handler;
 mod challenge;
+mod handler;
 
-pub use handler::*;
 pub use challenge::*;
+pub use handler::*;

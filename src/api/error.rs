@@ -7,25 +7,25 @@ use thiserror::Error;
 pub enum ApiError {
     #[error("Network error: {0}")]
     NetworkError(String),
-    
+
     #[error("Authentication required")]
     Unauthorized,
-    
+
     #[error("Access forbidden")]
     Forbidden,
-    
+
     #[error("Resource not found: {0}")]
     NotFound(String),
-    
+
     #[error("Rate limited, retry after {0} seconds")]
     RateLimited(u64),
-    
+
     #[error("Server error: {0}")]
     ServerError(String),
-    
+
     #[error("Parse error: {0}")]
     ParseError(String),
-    
+
     #[error("Invalid URL: {0}")]
     InvalidUrl(String),
 }

@@ -21,16 +21,16 @@ pub enum StorageError {
 pub trait StorageAdapter {
     /// Store data with a key
     fn store(&self, key: &str, data: &[u8]) -> Result<(), StorageError>;
-    
+
     /// Retrieve data by key
     fn retrieve(&self, key: &str) -> Result<Option<Vec<u8>>, StorageError>;
-    
+
     /// Remove data by key
     fn remove(&self, key: &str) -> Result<(), StorageError>;
-    
+
     /// Clear all stored data
     fn clear(&self) -> Result<(), StorageError>;
-    
+
     /// List all keys
     fn keys(&self) -> Result<Vec<String>, StorageError>;
 }

@@ -16,7 +16,9 @@ pub enum AuthType {
 pub fn get_auth_header(auth: &AuthConfig) -> Option<String> {
     match auth {
         AuthConfig::Anonymous => None,
-        AuthConfig::BasicAuth { username, password, .. } => {
+        AuthConfig::BasicAuth {
+            username, password, ..
+        } => {
             let credentials = format!("{}:{}", username, password);
             let encoded = STANDARD.encode(credentials.as_bytes());
             Some(format!("Basic {}", encoded))

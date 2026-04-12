@@ -5,7 +5,7 @@ pub fn filter_strings<'a>(items: &'a [String], search: &str) -> Vec<&'a String> 
     if search.is_empty() {
         return items.iter().collect();
     }
-    
+
     let search_lower = search.to_lowercase();
     items
         .iter()
@@ -15,8 +15,5 @@ pub fn filter_strings<'a>(items: &'a [String], search: &str) -> Vec<&'a String> 
 
 /// Filter and return owned strings
 pub fn filter_strings_owned(items: &[String], search: &str) -> Vec<String> {
-    filter_strings(items, search)
-        .into_iter()
-        .cloned()
-        .collect()
+    filter_strings(items, search).into_iter().cloned().collect()
 }

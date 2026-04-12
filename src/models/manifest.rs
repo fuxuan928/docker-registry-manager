@@ -132,7 +132,10 @@ impl Manifest {
     pub fn media_type(&self) -> &str {
         match self {
             Manifest::V2(m) => &m.media_type,
-            Manifest::OCI(m) => m.media_type.as_deref().unwrap_or("application/vnd.oci.image.manifest.v1+json"),
+            Manifest::OCI(m) => m
+                .media_type
+                .as_deref()
+                .unwrap_or("application/vnd.oci.image.manifest.v1+json"),
             Manifest::V1(_) => "application/vnd.docker.distribution.manifest.v1+json",
         }
     }

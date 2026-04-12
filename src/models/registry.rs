@@ -42,19 +42,18 @@ pub enum AuthConfig {
         encrypted_token: String,
     },
     /// TLS client certificate (Desktop only)
-    TlsCert {
-        cert_path: String,
-        key_path: String,
-    },
+    TlsCert { cert_path: String, key_path: String },
 }
 
 impl AuthConfig {
     /// Encrypt sensitive fields before saving
     pub fn encrypt_for_storage(&self) -> Result<Self, String> {
         use crate::storage::encryption::encrypt_string;
-        
+
         match self {
-            AuthConfig::BasicAuth { username, password, .. } => {
+            AuthConfig::BasicAuth {
+                username, password, ..
+            } => {
                 let encrypted = encrypt_string(password).map_err(|e| e.to_string())?;
                 Ok(AuthConfig::BasicAuth {
                     username: username.clone(),
@@ -72,13 +71,17 @@ impl AuthConfig {
             other => Ok(other.clone()),
         }
     }
-    
+
     /// Decrypt sensitive fields after loading
     pub fn decrypt_from_storage(&self) -> Result<Self, String> {
         use crate::storage::encryption::decrypt_string;
-        
+
         match self {
-            AuthConfig::BasicAuth { username, password, encrypted_password } => {
+            AuthConfig::BasicAuth {
+                username,
+                password,
+                encrypted_password,
+            } => {
                 // If we have encrypted password, decrypt it
                 let decrypted = if !encrypted_password.is_empty() {
                     decrypt_string(encrypted_password).map_err(|e| e.to_string())?
@@ -91,7 +94,10 @@ impl AuthConfig {
                     encrypted_password: String::new(),
                 })
             }
-            AuthConfig::BearerToken { token, encrypted_token } => {
+            AuthConfig::BearerToken {
+                token,
+                encrypted_token,
+            } => {
                 let decrypted = if !encrypted_token.is_empty() {
                     decrypt_string(encrypted_token).map_err(|e| e.to_string())?
                 } else {
@@ -128,7 +134,7 @@ impl RegistryConfig {
             status: ConnectionStatus::Unknown,
         }
     }
-    
+
     /// Prepare for storage by encrypting sensitive data
     pub fn encrypt_for_storage(&self) -> Result<Self, String> {
         Ok(Self {
@@ -139,7 +145,7 @@ impl RegistryConfig {
             status: ConnectionStatus::Unknown,
         })
     }
-    
+
     /// Restore after loading by decrypting sensitive data
     pub fn decrypt_from_storage(&self) -> Result<Self, String> {
         Ok(Self {
