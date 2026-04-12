@@ -5,6 +5,7 @@
 pub mod api;
 pub mod auth;
 pub mod components;
+pub mod i18n;
 pub mod models;
 pub mod state;
 pub mod storage;

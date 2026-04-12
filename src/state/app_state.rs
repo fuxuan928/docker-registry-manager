@@ -1,6 +1,7 @@
 //! Application state management
 
-use crate::models::{CacheConfig, ConnectionStatus, RegistryConfig, Theme};
+use crate::i18n::{effective_locale, strings_for_locale, Strings};
+use crate::models::{CacheConfig, ConnectionStatus, Locale, RegistryConfig, Theme};
 use crate::storage::get_storage;
 use dioxus::prelude::*;
 
@@ -35,6 +36,8 @@ pub struct AppState {
     pub selected_tag: Signal<Option<String>>,
     /// Current theme
     pub theme: Signal<Theme>,
+    /// Current locale preference
+    pub locale: Signal<Locale>,
     /// Cache configuration
     pub cache_config: Signal<CacheConfig>,
     /// Global refresh tick
@@ -55,6 +58,10 @@ impl AppState {
             *self.theme.write() = theme;
         }
 
+        if let Ok(locale) = storage.load_locale() {
+            *self.locale.write() = locale;
+        }
+
         if let Ok(cache_config) = storage.load_cache_config() {
             *self.cache_config.write() = cache_config;
         }
@@ -72,6 +79,7 @@ impl AppState {
             selected_repo: Signal::new(None),
             selected_tag: Signal::new(None),
             theme: Signal::new(Theme::default()),
+            locale: Signal::new(Locale::default()),
             cache_config: Signal::new(CacheConfig::default()),
             refresh_tick: Signal::new(0),
         }
@@ -146,6 +154,21 @@ impl AppState {
         *self.theme.write() = new_theme.clone();
         let storage = get_storage();
         let _ = storage.save_theme(&new_theme);
+    }
+
+    /// Set locale and persist
+    pub fn set_locale(&mut self, new_locale: Locale) {
+        *self.locale.write() = new_locale;
+        let storage = get_storage();
+        let _ = storage.save_locale(&new_locale);
+    }
+
+    pub fn resolved_locale(&self) -> Locale {
+        effective_locale((self.locale)())
+    }
+
+    pub fn strings(&self) -> &'static dyn Strings {
+        strings_for_locale((self.locale)())
     }
 
     /// Set cache config and persist

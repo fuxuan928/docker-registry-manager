@@ -21,6 +21,7 @@ fn manifest_context_matches(app_state: &AppState, registry_id: &str, repo_name: 
 #[component]
 pub fn ManifestView() -> Element {
     let app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let selected_tag = app_state.selected_tag.read().clone();
     let selected_tag_name = selected_tag.clone().unwrap_or_default();
     
@@ -66,7 +67,7 @@ pub fn ManifestView() -> Element {
                                 }
                                 Err(e) => {
                                     if manifest_context_matches(&app_state, &id, &repo_name, &tag_name) {
-                                        error.set(Some(format!("Failed to fetch manifest: {}", e)));
+                                        error.set(Some(strings.failed_to_fetch_manifest(&e.to_string())));
                                         manifest.set(empty_manifest.clone());
                                         digest.set(empty_digest.clone());
                                         raw_json.set(empty_raw_json.clone());
@@ -76,7 +77,7 @@ pub fn ManifestView() -> Element {
                         }
                         Err(e) => {
                             if manifest_context_matches(&app_state, &id, &repo_name, &tag_name) {
-                                error.set(Some(format!("Failed to create client: {}", e)));
+                                error.set(Some(strings.failed_to_create_client(&e.to_string())));
                                 manifest.set(empty_manifest.clone());
                                 digest.set(empty_digest.clone());
                                 raw_json.set(empty_raw_json.clone());
@@ -104,23 +105,17 @@ pub fn ManifestView() -> Element {
         }
     });
 
-    let (empty_title, empty_body) = empty_state_guidance();
+    let (empty_title, empty_body) = empty_state_guidance(strings);
     let panel_summary = if selected_tag.is_none() {
         format!("{empty_title}. {empty_body}")
     } else if loading() {
-        format!(
-            "Loading manifest metadata, layers, and raw JSON for the {selected_tag_name} tag."
-        )
+        strings.loading_manifest_summary(&selected_tag_name)
     } else if error().is_some() {
-        format!(
-            "Unable to load manifest details for the {selected_tag_name} tag right now."
-        )
+        strings.failed_manifest_summary(&selected_tag_name)
     } else if let Some(m) = manifest() {
-        detail_summary(&selected_tag_name, &m)
+        strings.detail_summary(&selected_tag_name, m.layers().len())
     } else {
-        format!(
-            "Manifest details for the {selected_tag_name} tag will appear here once data is available."
-        )
+        strings.pending_manifest_summary(&selected_tag_name)
     };
     
     
@@ -132,7 +127,7 @@ pub fn ManifestView() -> Element {
                 class: "detail-panel-header",
                 div {
                     class: "detail-panel-title-group",
-                    h3 { "Manifest Details" }
+                    h3 { "{strings.manifest_details()}" }
                     p { class: "detail-panel-summary", "{panel_summary}" }
                 }
             }
@@ -144,12 +139,12 @@ pub fn ManifestView() -> Element {
                     class: "detail-empty-state",
                     h4 { "{empty_title}" }
                     p { "{empty_body}" }
-                    p { "Start with a tag selection to populate the overview, inspect each layer, and optionally expand the raw manifest JSON." }
+                    p { "{strings.select_tag_body()}" }
                 }
             } else if loading() {
                 section {
                     class: "detail-section",
-                    p { class: "loading", "Loading manifest..." }
+                    p { class: "loading", "{strings.loading_manifest()}" }
                 }
             } else if let Some(err) = error() {
                 section {
@@ -163,18 +158,18 @@ pub fn ManifestView() -> Element {
                     // Basic info
                     section {
                         class: "manifest-section detail-section",
-                        h4 { "Overview" }
+                        h4 { "{strings.overview()}" }
                         dl {
-                            dt { "Tag" }
+                            dt { "{strings.tag()}" }
                             dd { "{selected_tag.clone().unwrap_or_default()}" }
-                            dt { "Digest" }
+                            dt { "{strings.digest()}" }
                             dd { 
                                 class: "digest-value",
                                 "{digest}" 
                             }
-                            dt { "Media Type" }
+                            dt { "{strings.media_type()}" }
                             dd { "{m.media_type()}" }
-                            dt { "Total Size" }
+                            dt { "{strings.total_size()}" }
                             dd { "{format_size(m.total_size())}" }
                         }
                     }
@@ -182,7 +177,7 @@ pub fn ManifestView() -> Element {
                     // Layers
                     section {
                         class: "manifest-section detail-section",
-                        h4 { "Layers ({m.layers().len()})" }
+                        h4 { "{strings.layers(m.layers().len())}" }
                         div {
                             class: "layers-list",
                             for (i, layer) in m.layers().iter().enumerate() {
@@ -200,12 +195,12 @@ pub fn ManifestView() -> Element {
                     // Raw JSON toggle
                     section {
                         class: "manifest-section detail-section",
-                        h4 { "Raw JSON" }
-                        p { "Expand the raw manifest payload only when you need the exact registry response." }
+                        h4 { "{strings.raw_json()}" }
+                        p { "{strings.raw_json_help()}" }
                         button {
                             class: "secondary",
                             onclick: move |_| show_raw.set(true),
-                            "Show Raw JSON"
+                            "{strings.show_raw_json()}"
                         }
 
                         if show_raw() {
@@ -219,7 +214,7 @@ pub fn ManifestView() -> Element {
 
                                     div {
                                         class: "dialog-header",
-                                        h3 { "Raw JSON" }
+                                        h3 { "{strings.raw_json()}" }
                                     }
 
                                     div {
@@ -235,7 +230,7 @@ pub fn ManifestView() -> Element {
                                         button {
                                             class: "secondary",
                                             onclick: move |_| show_raw.set(false),
-                                            "Close"
+                                            "{strings.close()}"
                                         }
                                     }
                                 }
@@ -258,18 +253,8 @@ fn truncate_digest(digest: &str) -> String {
     }
 }
 
-fn detail_summary(tag: &str, manifest: &Manifest) -> String {
-    format!(
-        "Review the {tag} manifest, including {} layers, media type, digest, and the raw payload when needed.",
-        manifest.layers().len()
-    )
-}
-
-fn empty_state_guidance() -> (&'static str, &'static str) {
-    (
-        "Select a tag to inspect",
-        "Choose a tag from the list to review its manifest overview, image layers, and raw JSON details.",
-    )
+fn empty_state_guidance(strings: &'static dyn crate::i18n::Strings) -> (&'static str, &'static str) {
+    (strings.select_tag_to_inspect(), strings.select_tag_guidance())
 }
 
 fn reset_detail_state() -> (Option<Manifest>, String, String, bool, bool) {
@@ -296,15 +281,17 @@ fn manifest_request_is_current(
 /// History view component
 #[component]
 pub fn HistoryView(history: Vec<HistoryEntry>) -> Element {
+    let app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let sorted = sorted_history_chronologically(&history);
     
     rsx! {
         div {
             class: "history-view",
-            h4 { "Build History" }
+            h4 { "{strings.build_history()}" }
             
             if sorted.is_empty() {
-                p { class: "empty-message", "No history available" }
+                p { class: "empty-message", "{strings.no_history_available()}" }
             } else {
                 div {
                     class: "history-list",
@@ -322,7 +309,7 @@ pub fn HistoryView(history: Vec<HistoryEntry>) -> Element {
                             }
                             
                             if entry.empty_layer == Some(true) {
-                                span { class: "empty-layer-badge", "empty layer" }
+                                span { class: "empty-layer-badge", "{strings.empty_layer()}" }
                             }
                         }
                     }
@@ -361,7 +348,8 @@ mod tests {
             ],
         });
 
-        let summary = detail_summary("stable", &manifest);
+        let summary = crate::i18n::strings_for_locale(crate::models::Locale::En)
+            .detail_summary("stable", manifest.layers().len());
 
         assert!(summary.contains("stable"));
         assert!(summary.contains("2 layers"));
@@ -369,7 +357,9 @@ mod tests {
 
     #[test]
     fn empty_state_guidance_prompts_selection_and_preview_scope() {
-        let (title, body) = empty_state_guidance();
+        let (title, body) = empty_state_guidance(
+            crate::i18n::strings_for_locale(crate::models::Locale::En),
+        );
 
         assert_eq!(title, "Select a tag to inspect");
         assert!(body.contains("Choose a tag"));

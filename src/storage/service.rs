@@ -1,13 +1,14 @@
 //! Storage service for persisting application data
 
 use super::{StorageAdapter, StorageError};
-use crate::models::{CacheConfig, RegistryConfig, Theme};
+use crate::models::{CacheConfig, Locale, RegistryConfig, Theme};
 
 #[cfg(not(target_arch = "wasm32"))]
 use super::DesktopStorage;
 
 const REGISTRIES_KEY: &str = "registries";
 const THEME_KEY: &str = "theme";
+const LOCALE_KEY: &str = "locale";
 const CACHE_CONFIG_KEY: &str = "cache_config";
 const ENCRYPTION_VERIFIER_KEY: &str = "encryption_verifier";
 const ENCRYPTION_VERIFIER_PAYLOAD: &str = "docker-registry-manager::verifier";
@@ -84,6 +85,26 @@ impl StorageService {
                     .map_err(|e| StorageError::SerializationError(e.to_string()))
             }
             None => Ok(Theme::default()),
+        }
+    }
+
+    /// Save locale to storage
+    pub fn save_locale(&self, locale: &Locale) -> Result<(), StorageError> {
+        let json = serde_json::to_string(locale)
+            .map_err(|e| StorageError::SerializationError(e.to_string()))?;
+        self.adapter.store(LOCALE_KEY, json.as_bytes())
+    }
+
+    /// Load locale from storage
+    pub fn load_locale(&self) -> Result<Locale, StorageError> {
+        match self.adapter.retrieve(LOCALE_KEY)? {
+            Some(data) => {
+                let json = String::from_utf8(data)
+                    .map_err(|e| StorageError::SerializationError(e.to_string()))?;
+                serde_json::from_str(&json)
+                    .map_err(|e| StorageError::SerializationError(e.to_string()))
+            }
+            None => Ok(Locale::default()),
         }
     }
 

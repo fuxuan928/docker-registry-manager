@@ -11,6 +11,7 @@ use crate::utils::{filter_strings_owned, sorted_alphabetically};
 #[component]
 pub fn RepositoryList() -> Element {
     let mut app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let selected_registry_id = app_state.selected_registry.read().clone();
     let selected_repo = app_state.selected_repo.read().clone();
     let is_primary_workspace = selected_registry_id.is_some() && selected_repo.is_none();
@@ -58,7 +59,7 @@ pub fn RepositoryList() -> Element {
                                 }
                                 Err(e) => {
                                     if app_state.selected_registry.read().as_ref() == Some(&id) {
-                                        error.set(Some(format!("Failed to fetch repositories: {}", e)));
+                                        error.set(Some(strings.failed_to_fetch_repositories(&e.to_string())));
                                         repositories.set(Vec::new());
                                     }
                                 }
@@ -66,7 +67,7 @@ pub fn RepositoryList() -> Element {
                         }
                         Err(e) => {
                             if app_state.selected_registry.read().as_ref() == Some(&id) {
-                                error.set(Some(format!("Failed to create client: {}", e)));
+                                error.set(Some(strings.failed_to_create_client(&e.to_string())));
                                 repositories.set(Vec::new());
                             }
                         }
@@ -116,12 +117,12 @@ pub fn RepositoryList() -> Element {
                                     show_delete_dialog.set(true);
                                 }
                                 Err(e) => {
-                                    delete_status.set(Some(format!("Failed to fetch tags: {}", e)));
+                                    delete_status.set(Some(strings.failed_to_fetch_tags(&e.to_string())));
                                 }
                             }
                         }
                         Err(e) => {
-                            delete_status.set(Some(format!("Client error: {}", e)));
+                            delete_status.set(Some(strings.client_error(&e.to_string())));
                         }
                     }
                 });
@@ -146,8 +147,8 @@ pub fn RepositoryList() -> Element {
                 class: "workspace-panel-header",
                 div {
                     class: "workspace-panel-title-group",
-                    h3 { "Repositories" }
-                    p { "浏览当前 registry 的 repositories，并在此选择后续操作对象。" }
+                    h3 { "{strings.repositories()}" }
+                    p { "{strings.repositories_subtitle()}" }
                 }
 
                 if selected_registry.is_some() {
@@ -155,7 +156,7 @@ pub fn RepositoryList() -> Element {
                         class: "workspace-panel-actions",
                         button {
                             class: "btn-icon small",
-                            title: "Refresh",
+                            title: "{strings.refresh()}",
                             onclick: move |_| app_state.request_refresh(),
                             "🔄"
                         }
@@ -192,9 +193,9 @@ pub fn RepositoryList() -> Element {
 
                             // Show result status
                             if result.failed == 0 {
-                                delete_status.set(Some(format!("Deleted {} tags successfully", result.deleted)));
+                                delete_status.set(Some(strings.deleted_tags_successfully(result.deleted)));
                             } else {
-                                delete_status.set(Some(format!("Deleted {}, {} failed", result.deleted, result.failed)));
+                                delete_status.set(Some(strings.deleted_with_failures(result.deleted, result.failed)));
                             }
 
                             // Refresh repository list
@@ -214,7 +215,7 @@ pub fn RepositoryList() -> Element {
                 if selected_registry.is_none() {
                     p {
                         class: "empty-message",
-                        "Select a registry to view repositories"
+                        "{strings.select_registry_to_view_repositories()}"
                     }
                 } else {
                     // Search input
@@ -222,14 +223,14 @@ pub fn RepositoryList() -> Element {
                         class: "search-box",
                         input {
                             r#type: "text",
-                            placeholder: "Search repositories...",
+                            placeholder: "{strings.search_repositories()}" ,
                             value: "{search}",
                             oninput: move |e| search.set(e.value()),
                         }
                     }
 
                     if loading() {
-                        p { class: "loading", "Loading..." }
+                        p { class: "loading", "{strings.loading()}" }
                     } else if let Some(err) = error() {
                         div {
                             class: "error-box",
@@ -237,16 +238,16 @@ pub fn RepositoryList() -> Element {
                             button {
                                 class: "secondary small",
                                 onclick: move |_| app_state.request_refresh(),
-                                "Retry"
+                                "{strings.retry()}"
                             }
                         }
                     } else if filtered().is_empty() {
                         p {
                             class: "empty-message",
                             if search().is_empty() {
-                                "No repositories found"
+                                "{strings.no_repositories_found()}"
                             } else {
-                                "No matching repositories"
+                                "{strings.no_matching_repositories()}"
                             }
                         }
                     } else {
@@ -276,6 +277,8 @@ fn RepositoryItem(
     on_select: EventHandler<String>,
     on_delete: EventHandler<String>,
 ) -> Element {
+    let app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let repo_select = repo.clone();
     let repo_delete = repo.clone();
     
@@ -288,7 +291,7 @@ fn RepositoryItem(
             
             button {
                 class: "btn-icon small danger",
-                title: "Delete repository",
+                title: "{strings.delete_repository_title()}",
                 onclick: move |e| {
                     e.stop_propagation();
                     on_delete.call(repo_delete.clone());

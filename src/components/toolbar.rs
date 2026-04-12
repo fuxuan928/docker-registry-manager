@@ -3,14 +3,17 @@
 use crate::state::AppState;
 use dioxus::prelude::*;
 
-fn toolbar_status_copy(context_path: &str) -> (&'static str, String) {
-    let detail = if context_path == "No selection" {
-        "Context: No selection".to_string()
+fn toolbar_status_copy(
+    strings: &'static dyn crate::i18n::Strings,
+    context_path: &str,
+) -> (&'static str, String) {
+    let detail = if context_path == strings.no_selection() {
+        strings.context_label(strings.no_selection())
     } else {
-        format!("Context: {context_path}")
+        strings.context_label(context_path)
     };
 
-    ("Ready", detail)
+    (strings.ready(), detail)
 }
 
 fn display_registry_name(
@@ -28,6 +31,7 @@ fn display_registry_name(
 #[component]
 pub fn Toolbar(show_settings: Signal<bool>) -> Element {
     let mut app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let selected_registry = app_state.selected_registry.read().clone();
     let selected_repo = app_state.selected_repo.read().clone();
     let selected_tag = app_state.selected_tag.read().clone();
@@ -43,17 +47,17 @@ pub fn Toolbar(show_settings: Signal<bool>) -> Element {
         (Some(registry), Some(repo), Some(tag)) => format!("{registry} / {repo} / {tag}"),
         (Some(registry), Some(repo), None) => format!("{registry} / {repo}"),
         (Some(registry), None, None) => registry.clone(),
-        _ => "No selection".to_string(),
+        _ => strings.no_selection().to_string(),
     };
 
     let context_summary = match (&selected_registry, &selected_repo, &selected_tag) {
-        (_, _, Some(_)) => "Selected tag context".to_string(),
-        (_, Some(_), None) => "Selected repository context".to_string(),
-        (Some(_), None, None) => "Selected registry context".to_string(),
-        _ => "Choose a registry, repository, or tag to begin".to_string(),
+        (_, _, Some(_)) => strings.selected_tag_context().to_string(),
+        (_, Some(_), None) => strings.selected_repository_context().to_string(),
+        (Some(_), None, None) => strings.selected_registry_context().to_string(),
+        _ => strings.context_guidance().to_string(),
     };
 
-    let (status_label, status_detail) = toolbar_status_copy(&context_path);
+    let (status_label, status_detail) = toolbar_status_copy(strings, &context_path);
 
     rsx! {
         header {
@@ -62,7 +66,7 @@ pub fn Toolbar(show_settings: Signal<bool>) -> Element {
             div {
                 class: "topbar-title-group",
 
-                h1 { "Docker Registry Manager" }
+                h1 { "{strings.app_title()}" }
 
                 div {
                     class: "topbar-context",
@@ -98,20 +102,20 @@ pub fn Toolbar(show_settings: Signal<bool>) -> Element {
 
                 button {
                     class: "btn-icon",
-                    title: "Refresh",
+                    title: "{strings.refresh()}",
                     disabled: selected_registry.is_none(),
                     onclick: move |_| app_state.request_refresh(),
-                    "Refresh"
+                    "{strings.refresh()}"
                 }
 
                 button {
                     class: if show_settings() { "btn-icon active" } else { "btn-icon" },
-                    title: "Settings",
+                    title: "{strings.settings()}",
                     onclick: move |_| show_settings.set(!show_settings()),
                     if show_settings() {
-                        "Close Settings"
+                        "{strings.close_settings()}"
                     } else {
-                        "Open Settings"
+                        "{strings.open_settings()}"
                     }
                 }
             }
@@ -125,7 +129,8 @@ mod tests {
 
     #[test]
     fn toolbar_status_copy_reports_ready_state_without_selection() {
-        let (label, detail) = toolbar_status_copy("No selection");
+        let strings = crate::i18n::strings_for_locale(crate::models::Locale::En);
+        let (label, detail) = toolbar_status_copy(strings, "No selection");
 
         assert_eq!(label, "Ready");
         assert!(detail.contains("No selection"));
@@ -133,7 +138,8 @@ mod tests {
 
     #[test]
     fn toolbar_status_copy_includes_context_when_available() {
-        let (_, detail) = toolbar_status_copy("registry-a / repo-a");
+        let strings = crate::i18n::strings_for_locale(crate::models::Locale::En);
+        let (_, detail) = toolbar_status_copy(strings, "registry-a / repo-a");
 
         assert!(detail.contains("registry-a / repo-a"));
     }

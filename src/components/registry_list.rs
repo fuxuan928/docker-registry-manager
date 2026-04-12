@@ -22,12 +22,23 @@ fn registry_matches_filter(registry: &RegistryConfig, query: &str) -> bool {
         || registry.url.to_ascii_lowercase().contains(&query)
 }
 
+#[cfg(test)]
 fn registry_status_text(status: &ConnectionStatus) -> &str {
+    registry_status_text_with_strings(
+        crate::i18n::strings_for_locale(crate::models::Locale::En),
+        status,
+    )
+}
+
+fn registry_status_text_with_strings(
+    strings: &'static dyn crate::i18n::Strings,
+    status: &ConnectionStatus,
+) -> &'static str {
     match status {
-        ConnectionStatus::Connected => "Connected",
-        ConnectionStatus::Disconnected => "Disconnected",
-        ConnectionStatus::Error(_) => "Error",
-        ConnectionStatus::Unknown => "Not checked",
+        ConnectionStatus::Connected => strings.connected(),
+        ConnectionStatus::Disconnected => strings.disconnected(),
+        ConnectionStatus::Error(_) => strings.error(),
+        ConnectionStatus::Unknown => strings.not_checked(),
     }
 }
 
@@ -56,6 +67,7 @@ fn registry_ping_targets(registries: &[RegistryConfig]) -> Vec<RegistryPingTarge
 #[component]
 pub fn RegistryList() -> Element {
     let mut app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let mut show_form = use_signal(|| false);
     let mut editing_id = use_signal(|| None::<String>);
     let mut delete_confirm_id = use_signal(|| None::<String>);
@@ -102,8 +114,8 @@ pub fn RegistryList() -> Element {
                 class: "registry-header rail-header",
                 div {
                     class: "rail-title-group",
-                    h3 { "Registries" }
-                    p { "Select and manage your configured registries." }
+                    h3 { "{strings.registries()}" }
+                    p { "{strings.registries_subtitle()}" }
                 }
                 button {
                     class: "btn-icon rail-add-button",
@@ -111,7 +123,7 @@ pub fn RegistryList() -> Element {
                         editing_id.set(None);
                         show_form.set(true);
                     },
-                    "+ Add"
+                    "{strings.add_registry_button()}"
                 }
             }
 
@@ -120,7 +132,7 @@ pub fn RegistryList() -> Element {
                 input {
                     r#type: "search",
                     value: "{filter_query}",
-                    placeholder: "Filter by name or URL",
+                    placeholder: "{strings.filter_by_name_or_url()}",
                     oninput: move |e| filter_query.set(e.value()),
                 }
             }
@@ -128,12 +140,12 @@ pub fn RegistryList() -> Element {
             if registries.is_empty() {
                 p {
                     class: "empty-message",
-                    "No registries configured"
+                    "{strings.no_registries_configured()}"
                 }
             } else if visible_registries.is_empty() {
                 p {
                     class: "empty-message",
-                    "No registries match the current filter"
+                    "{strings.no_registries_match_filter()}"
                 }
             }
 
@@ -183,24 +195,22 @@ pub fn RegistryList() -> Element {
                         class: "modal delete-dialog registry-delete-dialog",
                         onclick: move |e| e.stop_propagation(),
 
-                        h3 { "Delete Registry" }
+                        h3 { "{strings.delete_registry()}" }
 
                         div {
                             class: "delete-confirm",
                             p {
-                                "Are you sure you want to delete registry "
-                                strong { "{delete_registry_name}" }
-                                "?"
+                                "{strings.delete_registry_confirm(&delete_registry_name)}"
                             }
 
-                            p { class: "warning", "⚠️ This will remove the registry from your list. Your images on the registry will not be affected." }
+                            p { class: "warning", "{strings.delete_registry_warning()}" }
 
                             div {
                                 class: "form-actions",
                                 button {
                                     class: "secondary",
                                     onclick: move |_| delete_confirm_id.set(None),
-                                    "Cancel"
+                                    "{strings.cancel()}"
                                 }
                                 button {
                                     class: "danger",
@@ -210,7 +220,7 @@ pub fn RegistryList() -> Element {
                                         }
                                         delete_confirm_id.set(None);
                                     },
-                                    "Delete"
+                                    "{strings.delete_action()}"
                                 }
                             }
                         }
@@ -230,6 +240,8 @@ fn RegistryItem(
     on_edit: EventHandler<String>,
     on_delete: EventHandler<String>,
 ) -> Element {
+    let app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let status_class = match &registry.status {
         ConnectionStatus::Connected => "connected",
         ConnectionStatus::Disconnected => "disconnected",
@@ -264,7 +276,7 @@ fn RegistryItem(
                     }
                     span {
                         class: "registry-status-text",
-                        "{registry_status_text(&registry.status)}"
+                        "{registry_status_text_with_strings(strings, &registry.status)}"
                     }
                 }
             }
@@ -300,6 +312,7 @@ fn RegistryFormModal(
     on_save: EventHandler<RegistryConfig>,
 ) -> Element {
     let app_state = use_context::<AppState>();
+    let strings = app_state.strings();
 
     // Get existing config if editing
     let existing = editing_id
@@ -338,15 +351,15 @@ fn RegistryFormModal(
     let mut token = use_signal(String::new);
 
     let title = if editing_id.is_some() {
-        "Edit Registry"
+        strings.edit_registry()
     } else {
-        "Add Registry"
+        strings.add_registry()
     };
 
     rsx! {
         div {
             class: "modal-overlay registry-form-modal",
-            // 不再点击空白关闭
+            // Keep this modal explicit to avoid accidental dismissal.
 
             div {
                 class: "modal registry-form-dialog",
@@ -388,7 +401,7 @@ fn RegistryFormModal(
 
                     div {
                         class: "form-group",
-                        label { "Name" }
+                        label { "{strings.name()}" }
                         input {
                             r#type: "text",
                             value: "{name}",
@@ -399,11 +412,11 @@ fn RegistryFormModal(
 
                     div {
                         class: "form-group",
-                        label { "URL" }
+                        label { "{strings.url()}" }
                         input {
                             r#type: "url",
                             value: "{url}",
-                            placeholder: "https://registry.example.com",
+                            placeholder: "{strings.registry_url_placeholder()}" ,
                             oninput: move |e| url.set(e.value()),
                             required: true,
                         }
@@ -411,20 +424,20 @@ fn RegistryFormModal(
 
                     div {
                         class: "form-group",
-                        label { "Authentication" }
+                        label { "{strings.authentication()}" }
                         select {
                             value: "{auth_type}",
                             onchange: move |e| auth_type.set(e.value()),
-                            option { value: "anonymous", "Anonymous" }
-                            option { value: "basic", "Basic Auth" }
-                            option { value: "bearer", "Bearer Token" }
+                            option { value: "anonymous", "{strings.anonymous()}" }
+                            option { value: "basic", "{strings.basic_auth()}" }
+                            option { value: "bearer", "{strings.bearer_token()}" }
                         }
                     }
 
                     if auth_type() == "basic" {
                         div {
                             class: "form-group",
-                            label { "Username" }
+                            label { "{strings.username()}" }
                             input {
                                 r#type: "text",
                                 value: "{username}",
@@ -433,7 +446,7 @@ fn RegistryFormModal(
                         }
                         div {
                             class: "form-group",
-                            label { "Password" }
+                            label { "{strings.password()}" }
                             input {
                                 r#type: "password",
                                 value: "{password}",
@@ -445,7 +458,7 @@ fn RegistryFormModal(
                     if auth_type() == "bearer" {
                         div {
                             class: "form-group",
-                            label { "Token" }
+                            label { "{strings.token()}" }
                             input {
                                 r#type: "password",
                                 value: "{token}",
@@ -460,12 +473,12 @@ fn RegistryFormModal(
                             r#type: "button",
                             class: "secondary",
                             onclick: move |_| on_close.call(()),
-                            "Cancel"
+                            "{strings.cancel()}"
                         }
                         button {
                             r#type: "submit",
                             class: "primary",
-                            "Save"
+                            "{strings.save()}"
                         }
                     }
                 }

@@ -14,6 +14,7 @@ fn tag_checkbox_class() -> &'static str {
 #[component]
 pub fn TagList() -> Element {
     let mut app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let selected_registry_id = app_state.selected_registry.read().clone();
     let selected_repo = app_state.selected_repo.read().clone();
     let selected_tag = app_state.selected_tag.read().clone();
@@ -78,7 +79,7 @@ pub fn TagList() -> Element {
                                     if app_state.selected_registry.read().as_ref() == Some(&id)
                                         && app_state.selected_repo.read().as_ref() == Some(&repo_name)
                                     {
-                                        error.set(Some(format!("Failed to fetch tags: {}", e)));
+                                        error.set(Some(strings.failed_to_fetch_tags(&e.to_string())));
                                         tags.set(Vec::new());
                                     }
                                 }
@@ -88,7 +89,7 @@ pub fn TagList() -> Element {
                             if app_state.selected_registry.read().as_ref() == Some(&id)
                                 && app_state.selected_repo.read().as_ref() == Some(&repo_name)
                             {
-                                error.set(Some(format!("Failed to create client: {}", e)));
+                                error.set(Some(strings.failed_to_create_client(&e.to_string())));
                                 tags.set(Vec::new());
                             }
                         }
@@ -132,8 +133,8 @@ pub fn TagList() -> Element {
                 class: "workspace-panel-header",
                 div {
                     class: "workspace-panel-title-group",
-                    h3 { "Tags" }
-                    p { "查看当前 repository 的 tags，并在此执行筛选、选择与批量操作。" }
+                    h3 { "{strings.tags()}" }
+                    p { "{strings.tags_subtitle()}" }
                 }
 
                 if selected_repo.is_some() && selected_registry.is_some() {
@@ -141,7 +142,7 @@ pub fn TagList() -> Element {
                         class: "workspace-panel-actions",
                         button {
                             class: "btn-icon small",
-                            title: "Refresh",
+                            title: "{strings.refresh()}",
                             onclick: move |_| app_state.request_refresh(),
                             "🔄"
                         }
@@ -155,7 +156,7 @@ pub fn TagList() -> Element {
                 if selected_repo.is_none() {
                     p {
                         class: "empty-message",
-                        "Select a repository to view tags"
+                        "{strings.select_repository_to_view_tags()}"
                     }
                 } else {
                     div {
@@ -164,7 +165,7 @@ pub fn TagList() -> Element {
                             class: "search-box",
                             input {
                                 r#type: "text",
-                                placeholder: "Search tags...",
+                                placeholder: "{strings.search_tags()}" ,
                                 value: "{search}",
                                 oninput: move |e| search.set(e.value()),
                             }
@@ -173,13 +174,13 @@ pub fn TagList() -> Element {
                         if !selected_tags().is_empty() {
                             div {
                                 class: "batch-actions",
-                                span { "{selected_tags().len()} selected" }
+                                span { "{strings.selected_count(selected_tags().len())}" }
                                 button {
                                     class: "danger small",
                                     onclick: move |_| {
                                         show_delete_confirm.set(true);
                                     },
-                                    "Delete Selected"
+                                    "{strings.delete_selected()}"
                                 }
                             }
                         }
@@ -196,7 +197,7 @@ pub fn TagList() -> Element {
                                     app_state.selected_repo.read().clone()
                                 ) {
                                     if let Some(registry) = app_state.get_registry(&id) {
-                                        delete_status.set(Some("Deleting...".to_string()));
+                                        delete_status.set(Some(strings.deleting().to_string()));
 
                                         spawn(async move {
                                             match RegistryClient::new(registry.url.clone(), registry.auth.clone()) {
@@ -215,18 +216,18 @@ pub fn TagList() -> Element {
                                                                             deleted += 1;
                                                                             deleted_tag_names.push(tag_name.clone());
                                                                         }
-                                                                        Err(e) => errors.push(format!("{}: {}", tag_name, e)),
+                                                                        Err(e) => errors.push(strings.tag_error_entry(tag_name, &e.to_string())),
                                                                     }
                                                                 }
                                                             }
-                                                            Err(e) => errors.push(format!("{}: {}", tag_name, e)),
+                                                            Err(e) => errors.push(strings.tag_error_entry(tag_name, &e.to_string())),
                                                         }
                                                     }
 
                                                     if errors.is_empty() {
-                                                        delete_status.set(Some(format!("Deleted {} tags", deleted)));
+                                                        delete_status.set(Some(strings.deleted_tags(deleted)));
                                                     } else {
-                                                        delete_status.set(Some(format!("Deleted {}, {} errors", deleted, errors.len())));
+                                                        delete_status.set(Some(strings.deleted_tags_with_errors(deleted, errors.len())));
                                                     }
 
                                                     if app_state.selected_tag.read().as_ref().is_some_and(|tag| deleted_tag_names.contains(tag)) {
@@ -241,7 +242,7 @@ pub fn TagList() -> Element {
                                                     }
                                                 }
                                                 Err(e) => {
-                                                    delete_status.set(Some(format!("Error: {}", e)));
+                                                    delete_status.set(Some(strings.error_with_details(&e.to_string())));
                                                 }
                                             }
                                             selected_tags.set(Vec::new());
@@ -270,7 +271,7 @@ pub fn TagList() -> Element {
                     }
 
                     if loading() {
-                        p { class: "loading", "Loading..." }
+                        p { class: "loading", "{strings.loading()}" }
                     } else if let Some(err) = error() {
                         div {
                             class: "error-box",
@@ -278,16 +279,16 @@ pub fn TagList() -> Element {
                             button {
                                 class: "secondary small",
                                 onclick: move |_| app_state.request_refresh(),
-                                "Retry"
+                                "{strings.retry()}"
                             }
                         }
                     } else if filtered().is_empty() {
                         p {
                             class: "empty-message",
                             if search().is_empty() {
-                                "No tags found"
+                                "{strings.no_tags_found()}"
                             } else {
-                                "No matching tags"
+                                "{strings.no_matching_tags()}"
                             }
                         }
                     } else {
@@ -374,6 +375,8 @@ fn DeleteTagsDialog(
     on_confirm: EventHandler<()>,
     on_cancel: EventHandler<()>,
 ) -> Element {
+    let app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let count = tags_to_delete.len();
     
     rsx! {
@@ -384,15 +387,11 @@ fn DeleteTagsDialog(
                 class: "modal delete-dialog",
                 onclick: move |e| e.stop_propagation(),
                 
-                h3 { "Delete Tags" }
+                h3 { "{strings.delete_tags()}" }
                 
                 div {
                     class: "delete-confirm",
-                    p {
-                        "Are you sure you want to delete "
-                        strong { "{count}" }
-                        " tag(s)?"
-                    }
+                    p { "{strings.delete_tags_confirm(count)}" }
                     
                     div {
                         class: "tag-list-preview",
@@ -400,23 +399,23 @@ fn DeleteTagsDialog(
                             span { class: "tag-badge", "{tag}" }
                         }
                         if count > 10 {
-                            span { class: "more-tags", "...and {count - 10} more" }
+                            span { class: "more-tags", "{strings.more_items(count - 10)}" }
                         }
                     }
-                    
-                    p { class: "warning", "⚠️ This action cannot be undone." }
+
+                    p { class: "warning", "{strings.action_cannot_be_undone()}" }
                     
                     div {
                         class: "form-actions",
                         button {
                             class: "secondary",
                             onclick: move |_| on_cancel.call(()),
-                            "Cancel"
+                            "{strings.cancel()}"
                         }
                         button {
                             class: "danger",
                             onclick: move |_| on_confirm.call(()),
-                            "Delete"
+                            "{strings.delete_action()}"
                         }
                     }
                 }

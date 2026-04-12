@@ -1,11 +1,13 @@
 //! Data models for Docker Registry Manager
 
-mod registry;
-mod manifest;
 mod cache;
 mod error;
+mod locale;
+mod manifest;
+mod registry;
 
-pub use registry::*;
-pub use manifest::*;
 pub use cache::*;
 pub use error::*;
+pub use locale::*;
+pub use manifest::*;
+pub use registry::*;

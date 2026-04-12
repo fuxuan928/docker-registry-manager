@@ -3,6 +3,7 @@
 use dioxus::prelude::*;
 use crate::api::RegistryClient;
 use crate::models::AuthConfig;
+use crate::state::AppState;
 
 fn dialog_state_class(completed: bool, deleting: bool, has_tags: bool) -> &'static str {
     if completed {
@@ -57,6 +58,8 @@ pub fn DeleteRepositoryDialog(
     on_confirm: EventHandler<DeletionResult>,
     on_cancel: EventHandler<()>,
 ) -> Element {
+    let app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let mut deleting = use_signal(|| false);
     let mut progress = use_signal(|| 0usize);
     let mut completed = use_signal(|| false);
@@ -97,24 +100,24 @@ pub fn DeleteRepositoryDialog(
                                         Ok(_) => deleted += 1,
                                         Err(e) => {
                                             failed += 1;
-                                            errors.push(format!("{}: {}", tag, e));
+                                            errors.push(strings.tag_error_entry(tag, &e.to_string()));
                                         }
                                     }
                                 } else {
                                     failed += 1;
-                                    errors.push(format!("{}: No digest returned", tag));
+                                    errors.push(strings.tag_error_entry(tag, strings.no_digest_returned()));
                                 }
                             }
                             Err(e) => {
                                 failed += 1;
-                                errors.push(format!("{}: {}", tag, e));
+                                errors.push(strings.tag_error_entry(tag, &e.to_string()));
                             }
                         }
                         progress.set(i + 1);
                     }
                 }
                 Err(e) => {
-                    errors.push(format!("Client error: {}", e));
+                    errors.push(strings.client_error(&e.to_string()));
                     failed = tags_to_delete.len();
                 }
             }
@@ -140,7 +143,7 @@ pub fn DeleteRepositoryDialog(
 
                 div {
                     class: "dialog-header",
-                    h3 { "Delete Repository" }
+                    h3 { "{strings.delete_repository_title()}" }
                 }
                 
                 if is_completed {
@@ -149,18 +152,14 @@ pub fn DeleteRepositoryDialog(
                         class: "dialog-body {state_class}",
                         div {
                             class: "dialog-section delete-summary",
-                            p { "Repository deletion completed." }
-                            p {
-                                "Deleted "
-                                strong { "{result().deleted}" }
-                                " of {total_tags} tags."
-                            }
+                            p { "{strings.repository_deletion_completed()}" }
+                            p { "{strings.deleted_of_tags(result().deleted, total_tags)}" }
                         }
                         
                         if result().failed > 0 {
                             div {
                                 class: "dialog-section error-summary",
-                                p { class: "error", "Failed to delete {result().failed} tags:" }
+                                p { class: "error", "{strings.failed_to_delete_tags(result().failed)}" }
                                 div {
                                     class: "error-list",
                                     for err in result().errors.iter().take(5) {
@@ -169,7 +168,7 @@ pub fn DeleteRepositoryDialog(
                                     if result().errors.len() > 5 {
                                         {
                                             let more = result().errors.len() - 5;
-                                            rsx! { p { class: "more-errors", "...and {more} more errors" } }
+                                            rsx! { p { class: "more-errors", "{strings.more_items(more)}" } }
                                         }
                                     }
                                 }
@@ -181,7 +180,7 @@ pub fn DeleteRepositoryDialog(
                             button {
                                 class: "primary",
                                 onclick: move |_| on_confirm.call(result()),
-                                "Close"
+                                "{strings.close()}"
                             }
                         }
                     }
@@ -191,7 +190,7 @@ pub fn DeleteRepositoryDialog(
                         class: "dialog-body {state_class}",
                         div {
                             class: "dialog-section delete-progress",
-                            p { "Deleting tags..." }
+                            p { "{strings.deleting_tags()}" }
                             progress {
                                 class: "progress-bar",
                                 value: "{progress()}",
@@ -213,12 +212,10 @@ pub fn DeleteRepositoryDialog(
                         div {
                             class: "dialog-section delete-summary",
                             p {
-                                "Are you sure you want to delete repository "
-                                strong { "{repo_name}" }
-                                "?"
+                                "{strings.delete_repository_confirm(&repo_name)}"
                             }
-                            
-                            p { class: "warning", "⚠️ This will delete all {total_tags} tags. This action cannot be undone." }
+                             
+                            p { class: "warning", "{strings.delete_all_tags_warning(total_tags)}" }
                         }
 
                         div {
@@ -227,7 +224,7 @@ pub fn DeleteRepositoryDialog(
                                 span { class: "tag-badge", "{tag}" }
                             }
                             if total_tags > 10 {
-                                span { class: "more-tags", "...and {total_tags - 10} more" }
+                                span { class: "more-tags", "{strings.more_items(total_tags - 10)}" }
                             }
                         }
                         
@@ -236,12 +233,12 @@ pub fn DeleteRepositoryDialog(
                             button {
                                 class: "secondary",
                                 onclick: move |_| on_cancel.call(()),
-                                "Cancel"
+                                "{strings.cancel()}"
                             }
                             button {
                                 class: "danger",
                                 onclick: start_deletion,
-                                "Delete All Tags"
+                                "{strings.delete_all_tags()}"
                             }
                         }
                     }
@@ -258,6 +255,8 @@ fn EmptyRepositoryInfo(
     repo_name: String,
     on_close: EventHandler<()>,
 ) -> Element {
+    let app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let mut copied = use_signal(|| false);
     
     let gc_command = "docker exec <registry-container> bin/registry garbage-collect /etc/docker/registry/config.yml --delete-untagged";
@@ -283,22 +282,18 @@ fn EmptyRepositoryInfo(
             class: "dialog-body delete-dialog-state delete-dialog-info-state",
             div {
                 class: "dialog-section empty-repository-info",
-                p {
-                    "Repository "
-                    strong { "{repo_name}" }
-                    " has no tags."
-                }
+                p { "{strings.repository_has_no_tags(&repo_name)}" }
             }
             
             div {
                 class: "dialog-section info-box empty-repository-info",
-                p { "ℹ️ This repository appears to be empty or contains only untagged manifests." }
-                p { "Docker Registry does not support direct repository deletion via API." }
+                p { "{strings.empty_repository_hint()}" }
+                p { "{strings.api_repository_delete_not_supported()}" }
                 
                 div {
                     class: "gc-section",
                     p { 
-                        strong { "To clean up, run garbage collection on the registry server:" }
+                        strong { "{strings.garbage_collect_hint()}" }
                     }
                     
                     div {
@@ -306,7 +301,7 @@ fn EmptyRepositoryInfo(
                         code { "{gc_command}" }
                         button {
                             class: "btn-icon small",
-                            title: "Copy command",
+                            title: "{strings.copy_command()}" ,
                             onclick: copy_command,
                             "{copy_button_text(copied())}"
                         }
@@ -314,7 +309,7 @@ fn EmptyRepositoryInfo(
                     
                     p {
                         class: "hint",
-                        "Replace <registry-container> with your registry container name."
+                        "{strings.replace_registry_container_hint()}"
                     }
                 }
             }
@@ -324,7 +319,7 @@ fn EmptyRepositoryInfo(
                 button {
                     class: "primary",
                     onclick: move |_| on_close.call(()),
-                    "Close"
+                    "{strings.close()}"
                 }
             }
         }

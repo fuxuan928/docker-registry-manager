@@ -1,6 +1,6 @@
 //! Settings panel component
 
-use crate::models::Theme;
+use crate::models::{Locale, Theme};
 use crate::state::AppState;
 use dioxus::prelude::*;
 
@@ -20,20 +20,14 @@ fn cache_config_with_max_age(
     config
 }
 
-fn settings_page_copy() -> (&'static str, &'static str) {
-    (
-        "Settings & Preferences",
-        "Configure the workspace, console behavior, and registry manager defaults.",
-    )
-}
-
 /// Settings panel component
 #[component]
 pub fn Settings() -> Element {
     let mut app_state = use_context::<AppState>();
+    let strings = app_state.strings();
     let theme = app_state.theme;
+    let locale = app_state.locale;
     let cache_config = app_state.cache_config;
-    let (page_title, page_subtitle) = settings_page_copy();
 
     let mut import_text = use_signal(String::new);
     let mut export_text = use_signal(String::new);
@@ -46,8 +40,8 @@ pub fn Settings() -> Element {
             div {
                 class: "settings-page-header",
 
-                h2 { "{page_title}" }
-                p { "{page_subtitle}" }
+                h2 { "{strings.settings_title()}" }
+                p { "{strings.settings_subtitle()}" }
             }
 
             div {
@@ -56,11 +50,11 @@ pub fn Settings() -> Element {
                 // Theme settings
                 section {
                     class: "settings-section",
-                    h3 { "Appearance" }
+                    h3 { "{strings.appearance()}" }
 
                     div {
                         class: "form-group",
-                        label { "Theme" }
+                        label { "{strings.theme()}" }
                         select {
                             value: match theme() {
                                 Theme::Light => "light",
@@ -75,9 +69,35 @@ pub fn Settings() -> Element {
                                 };
                                 app_state.set_theme(new_theme);
                             },
-                            option { value: "system", "Follow System" }
-                            option { value: "light", "Light" }
-                            option { value: "dark", "Dark" }
+                            option { value: "system", "{strings.follow_system()}" }
+                            option { value: "light", "{strings.light()}" }
+                            option { value: "dark", "{strings.dark()}" }
+                        }
+                    }
+
+                    div {
+                        class: "form-group",
+                        label { "{strings.language()}" }
+                        select {
+                            value: match locale() {
+                                Locale::System => "system",
+                                Locale::En => "en",
+                                Locale::ZhHans => "zh-Hans",
+                                Locale::ZhHant => "zh-Hant",
+                            },
+                            onchange: move |e| {
+                                let new_locale = match e.value().as_str() {
+                                    "en" => Locale::En,
+                                    "zh-Hans" => Locale::ZhHans,
+                                    "zh-Hant" => Locale::ZhHant,
+                                    _ => Locale::System,
+                                };
+                                app_state.set_locale(new_locale);
+                            },
+                            option { value: "system", "{strings.follow_system()}" }
+                            option { value: "en", "{strings.english()}" }
+                            option { value: "zh-Hans", "{strings.chinese_simplified()}" }
+                            option { value: "zh-Hant", "{strings.chinese_traditional()}" }
                         }
                     }
                 }
@@ -85,11 +105,11 @@ pub fn Settings() -> Element {
                 // Cache settings
                 section {
                     class: "settings-section",
-                    h3 { "Cache" }
+                    h3 { "{strings.cache()}" }
 
                     div {
                         class: "form-group",
-                        label { "Auto-refresh interval (seconds, 0 = disabled)" }
+                        label { "{strings.auto_refresh_interval()}" }
                         input {
                             r#type: "number",
                             min: "0",
@@ -104,7 +124,7 @@ pub fn Settings() -> Element {
 
                     div {
                         class: "form-group",
-                        label { "Cache max age (seconds)" }
+                        label { "{strings.cache_max_age()}" }
                         input {
                             r#type: "number",
                             min: "60",
@@ -122,18 +142,18 @@ pub fn Settings() -> Element {
                         onclick: move |_| {
                             app_state.set_cache_config(crate::models::CacheConfig::default());
                         },
-                        "Reset Cache Settings"
+                        "{strings.reset_cache_settings()}"
                     }
                 }
 
                 // Import/Export
                 section {
                     class: "settings-section",
-                    h3 { "Import / Export" }
+                    h3 { "{strings.import_export()}" }
 
                     div {
                         class: "form-group",
-                        label { "Export Registries" }
+                        label { "{strings.export_registries()}" }
                         button {
                             class: "secondary",
                             onclick: move |_| {
@@ -141,7 +161,7 @@ pub fn Settings() -> Element {
                                 let json = crate::utils::export_registries(&registries);
                                 export_text.set(json);
                             },
-                            "Generate Export"
+                            "{strings.generate_export()}"
                         }
 
                         if !export_text().is_empty() {
@@ -155,9 +175,9 @@ pub fn Settings() -> Element {
 
                     div {
                         class: "form-group",
-                        label { "Import Registries (paste JSON)" }
+                        label { "{strings.import_registries()}" }
                         textarea {
-                            placeholder: "Paste exported JSON here...",
+                            placeholder: "{strings.paste_exported_json_here()}",
                             value: "{import_text}",
                             oninput: move |e| {
                                 import_text.set(e.value());
@@ -187,7 +207,7 @@ pub fn Settings() -> Element {
                                     }
                                 }
                             },
-                            "Import"
+                            "{strings.import_action()}"
                         }
                     }
                 }
@@ -199,15 +219,6 @@ pub fn Settings() -> Element {
 #[cfg(test)]
 mod tests {
     use super::*;
-
-    #[test]
-    fn settings_page_copy_describes_console_page_shell() {
-        let (title, subtitle) = settings_page_copy();
-
-        assert_eq!(title, "Settings & Preferences");
-        assert!(subtitle.contains("workspace"));
-        assert!(subtitle.contains("registry manager"));
-    }
 
     #[test]
     fn cache_config_helpers_update_only_requested_field() {
